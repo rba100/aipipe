@@ -28,10 +28,7 @@ public class OpenRouterClient : ILLMClient
         if (_config.ModelType == ModelType.Fast) model = _config.OpenRouterFastModel;
         if (_config.ModelType == ModelType.Reasoning) model = _config.OpenRouterReasoningModel;
 
-        var systemMessage = _config.IsCodeBlock
-            ? "You are a helpful assistant. If the user has asked for something written, put it in a code block (```), otherwise just provide the answer."
-              + " If you do use a codeblock, all other text is ignored."
-            : "You are a helpful assistant.";
+        var systemMessage = Prompts.GetSystemPrompt(_config.IsCodeBlock);
 
         var requestBody = new ChatRequest(model, new[]
         {

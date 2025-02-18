@@ -29,10 +29,7 @@ public class GroqClient : ILLMClient
             Endpoint = new Uri(_groqEndpoint!),
         });
 
-        var systemMessage = _config.IsCodeBlock
-            ? "You are a helpful assistant. If the user has asked for something written, put it in a code block (```), otherwise just provide the answer."
-              + " If you do use a codeblock, all other text is ignored."
-            : "You are a helpful assistant.";
+        var systemMessage = Prompts.GetSystemPrompt(_config.IsCodeBlock);
 
         var options = new ChatCompletionOptions { };
 
