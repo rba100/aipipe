@@ -22,7 +22,7 @@ public class OpenRouterClient : ILLMClient
         _httpClient.DefaultRequestHeaders.Add("Authorization", $"Bearer {_openRouterApiKey}");
     }
 
-    public async Task<string> CompleteChatAsync(string prompt)
+    public async Task<string> CreateCompletionAsync(string prompt)
     {
         string model = _config.OpenRouterDefaultModel;
         if (_config.ModelType == ModelType.Fast) model = _config.OpenRouterFastModel;

@@ -4,5 +4,5 @@ namespace aipipe.llms;
 
 public interface ILLMClient
 {
-    Task<string> CompleteChatAsync(string prompt);
+    Task<string> CreateCompletionAsync(string prompt);
 }

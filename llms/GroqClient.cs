@@ -18,7 +18,7 @@ public class GroqClient : ILLMClient
         _config = config;
     }
 
-    public async Task<string> CompleteChatAsync(string prompt)
+    public async Task<string> CreateCompletionAsync(string prompt)
     {
         string groqModel = _config.GroqDefaultModel;
         if (_config.ModelType == ModelType.Fast) groqModel =  _config.GroqFastModel;

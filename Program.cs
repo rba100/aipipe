@@ -99,7 +99,7 @@ class Program
             PrintErrorAndExit("Error: Must provide prompt or pipe a file to stdin.");
         }
 
-        string aiOutput = await llmClient.CompleteChatAsync(sb.ToString());
+        string aiOutput = await llmClient.CreateCompletionAsync(sb.ToString());
 
         if (config.IsCodeBlock)
         {
