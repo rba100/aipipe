@@ -69,3 +69,6 @@ TestResult.xml
 
 # Exclude executable files
 bld/*.exe
+
+# Scripts
+setvars.ps1

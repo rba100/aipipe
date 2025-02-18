@@ -1,8 +1,9 @@
-﻿using System.ComponentModel.DataAnnotations;
-using System.Text;
+﻿using System.Text;
 using System.Text.RegularExpressions;
-using OpenAI;
-using OpenAI.Chat;
+using System.CommandLine;
+using System.CommandLine.Invocation;
+
+using aipipe.llms;
 
 namespace aipipe;
 
@@ -10,34 +11,58 @@ class Program
 {
     static async Task Main(string[] args)
     {
+        var options = new CommandLineOptions();
+        var rootCommand = options.RootCommand;
+
+        rootCommand.SetHandler(async (InvocationContext context) =>
+        {
+            // Config
+            var codeBlock = context.ParseResult.GetValueForOption(options.CodeBlockOption);
+            var isReasoning = context.ParseResult.GetValueForOption(options.ReasoningOption);
+            var fast = context.ParseResult.GetValueForOption(options.FastOption);
+            var mic = context.ParseResult.GetValueForOption(options.MicOption);
+            var useOpenRouter = context.ParseResult.GetValueForOption(options.OpenRouterOption);
+            ModelType modelType = isReasoning ? ModelType.Reasoning : fast ? ModelType.Fast : ModelType.Default;
+
+            // Prompt
+            var prompt = context.ParseResult.GetValueForArgument(options.PromptArgument);
+
+
+            await RunAIQuery(new Config
+            {
+                IsCodeBlock = codeBlock,
+                IsMic = mic,
+                UseOpenRouter = useOpenRouter,
+                ModelType = modelType
+            }, prompt);
+        });
+
+        await rootCommand.InvokeAsync(args);
+    }
+
+    static async Task RunAIQuery(Config config, string? argPrompt)
+    {
         void PrintErrorAndExit(string message)
         {
             Console.Error.WriteLine(message);
             Environment.Exit(1);
         }
 
-        if(args.Any(a=> new[] { "--help", "-h", "/?" }.Contains(a)))
+        if ((string.IsNullOrEmpty(config.GroqEndpoint) || string.IsNullOrEmpty(config.GroqToken)) && (string.IsNullOrEmpty(config.OpenRouterApiKey) || !config.UseOpenRouter))
         {
-            Console.WriteLine("Usage: aipipe [--cb] [--r1] [--fast] [prompt]");
-            Console.WriteLine("Options:");
-            Console.WriteLine("  --cb     Extract code block from response");
-            Console.WriteLine("  --r1     Use the DeepSeek model");
-            Console.WriteLine("  --fast   Use the Fast model");
-            Console.WriteLine("  --help   Display this help message");
-            Environment.Exit(0);
+            PrintErrorAndExit("Must set either GROQ_ENDPOINT/GROQ_API_KEY or OPENROUTER_API_KEY environment variables and specify --or for OpenRouter.");
         }
 
-        // Handle flags
-        string cbFlagStr = "--cb";
-        string deepseek = "--r1";
-        string fast = "--fast";
-        bool isCodeBlock = false;
-        bool isDeepSeek = false;
-        bool isFast = false;
-        var nonFlagArgs = args.Where(arg => !arg.StartsWith("--")).ToList();
-        if(args.Contains(cbFlagStr)) isCodeBlock = true;
-        if(args.Contains(deepseek)) isDeepSeek = true;
-        if(args.Contains(fast)) isFast = true;
+        ILLMClient llmClient;
+        try
+        {
+            llmClient = LLMClientFactory.CreateClient(config);
+        }
+        catch (Exception ex)
+        {
+            PrintErrorAndExit(ex.Message);
+            return;
+        }
 
         // Build prompt
         StringBuilder sb = new();
@@ -45,17 +70,26 @@ class Program
         // Is there a file being piped to stdin
         bool isFileStream = Console.IsInputRedirected;
 
-        if(isFileStream)
+        if (isFileStream)
         {
             var input = await Console.In.ReadToEndAsync();
             sb.AppendLine(input);
         }
-        
-        var argPrompt = nonFlagArgs.FirstOrDefault();
 
-        if(argPrompt is not null)
+        if (config.IsMic)
         {
-            if(sb.Length > 0)
+            var mic = new Mic(config);
+            var micInput = await mic.GetMicInput();
+            if (micInput is null) // user aborted
+            {
+                Environment.Exit(0);
+            }
+            sb.AppendLine(micInput);
+        }
+
+        if (argPrompt is not null)
+        {
+            if (sb.Length > 0)
                 sb.AppendLine("-----");
             sb.AppendLine(argPrompt);
         }
@@ -65,59 +99,23 @@ class Program
             PrintErrorAndExit("Error: Must provide prompt or pipe a file to stdin.");
         }
 
-        // Run AI Query
-        var groqEndpoint = Environment.GetEnvironmentVariable("GROQ_ENDPOINT");
-        var groqToken = Environment.GetEnvironmentVariable("GROQ_API_KEY");
-        var groqModel = Environment.GetEnvironmentVariable("GROQ_MODEL") ?? "llama-3.3-70b-versatile";
+        string aiOutput = await llmClient.CompleteChatAsync(sb.ToString());
 
-        if (string.IsNullOrEmpty(groqEndpoint))
-        {
-            PrintErrorAndExit("GROQ_ENDPOINT environment variable not set.");
-        }
-        if (string.IsNullOrEmpty(groqToken))
-        {
-            PrintErrorAndExit("GROQ_API_KEY environment variable not set.");
-        }
-
-        if(isDeepSeek) groqModel = "deepseek-r1-distill-llama-70b";
-        if(isFast) groqModel = "llama-3.1-8b-instant";
-
-        ChatClient client = new(model: groqModel, credential: groqToken!, new OpenAIClientOptions{
-            Endpoint = new Uri(groqEndpoint!),
-        });
-
-        var systemMessage = isCodeBlock
-                ? "You are a helpful assistant. If the user has asked for something written, put it in a code block (```), otherwise just provide the answer."
-                 +" If you do use a codeblock, all other text is ignored."
-                : "You are a helpful assistant.";
-
-        var options = new ChatCompletionOptions
-        {
-            
-        };
-        var messages = new ChatMessage[]
-        {
-            new SystemChatMessage(systemMessage),
-            new UserChatMessage(sb.ToString()),
-        };
-        var response = await client.CompleteChatAsync(messages, options, CancellationToken.None);
-        var aiOutput = response.Value.Content.Single().Text;
-
-        if(isCodeBlock)
+        if (config.IsCodeBlock)
         {
             aiOutput = ExtractCodeBlock(aiOutput);
         }
 
-        using (var writer = new StreamWriter(Console.OpenStandardOutput(), Encoding.UTF8))
+        using (var writer = new StreamWriter(Console.OpenStandardOutput(), new UTF8Encoding(false)))
         {
-            writer.WriteLine(aiOutput);
+            writer.Write(aiOutput);
         }
     }
 
     static string ExtractCodeBlock(string input)
     {
         var match = Regex.Match(input, @"```[a-zA-Z0-9.]*\n([\s\S]+?)\n```");
-        if(match.Success)
+        if (match.Success)
         {
             return match.Groups[1].Value;
         }
