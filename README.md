@@ -1,6 +1,6 @@
 # AIPipe
 
-A command-line tool for transforming text using AI-powered formatting.
+A command-line tool for transforming text or otherwise making adhoc LLM calls.
 
 ## Usage
 
@@ -10,9 +10,11 @@ Use the pipe operator (`|`) to send text through the `aipipe` command:
 some-app | aipipe "instruction"
 ```
 
+...or just call it by itself for shell based one-off llm calls.
+
 ### Example
 
-Simple reformatting, using the 'code block' flag to capture specific output from the LLM.
+Simple reformatting
 
 Input:
 ```bash
@@ -30,10 +32,12 @@ Output:
 }
 ```
 
+The 'code block' flag `--cb` is best for when you want something specifically formatted, rather than for you to just read yourself. Without it the llm might right "Sure, here's you file..." which you might not want to pipe into another application.
+
 ### Options
 
 - `--cb`: outputs only the first code block emitted by the LLM, discarding all other output. Otherwise all output is emitted to std out.
-- `--r1`: use a reasoning model instead, for extra oomph,
+- `--r1`: use a reasoning model instead, for extra oomph.
 - `--fast`: use a fast-but-thick model instead, for extra speed.
 
 ## Installation
