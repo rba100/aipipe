@@ -12,12 +12,40 @@ enum CodeBlockState
 
 class CodeBlockStreamHandler
 {
-    public StringBuilder Buffer = new();
+    private StringBuilder Buffer = new();
     private CodeBlockState state = CodeBlockState.SearchingOpening;
     private static readonly Regex openingRegex = new Regex("```[^\n]*\n", RegexOptions.Compiled);
     private static readonly Regex potentialClosingRegex = new Regex("\n`{0,2}$", RegexOptions.Compiled);
 
-    public string? Handle(string part)
+    private IAsyncEnumerable<string> innerStream;
+    private bool isCalled = false;
+
+    public CodeBlockStreamHandler(IAsyncEnumerable<string> innerStream)
+    {
+        this.innerStream = innerStream;
+    }
+
+    public async IAsyncEnumerable<string> Stream()
+    {
+        if (isCalled)
+            throw new System.InvalidOperationException("Stream can only be called once");
+        isCalled = true;
+        await foreach (var part in innerStream)
+        {
+            var result = Handle(part);
+            if (result == null)
+                yield break;
+            if (result.Length > 0)
+                yield return result;
+        }
+        
+        if (state != CodeBlockState.Closed && Buffer.Length > 0)
+        {
+            yield return Buffer.ToString();
+        }
+    }
+
+    private string? Handle(string part)
     {
         if (state == CodeBlockState.Closed)
             return null;

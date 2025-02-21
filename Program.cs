@@ -26,7 +26,7 @@ class Program
             ModelType modelType = isReasoning ? ModelType.Reasoning : fast ? ModelType.Fast : ModelType.Default;
 
             string? prompt = context.ParseResult.GetValueForArgument(options.PromptArgument);
-            
+
             await RunAIQuery(new Config
             {
                 IsStream = isStream,
@@ -94,24 +94,15 @@ class Program
         if (config.IsStream)
         {
             using var writer = new StreamWriter(Console.OpenStandardOutput(), new UTF8Encoding(false));
+            var stream = llmClient.CreateCompletionStreamAsync(promptBuilder.ToString());
             if (config.IsCodeBlock)
             {
-                var handler = new CodeBlockStreamHandler();
-                await foreach (var part in llmClient.CreateCompletionStreamAsync(promptBuilder.ToString()))
-                {
-                    var chunk = handler.Handle(part);
-                    if (chunk == null) break;
-                    writer.Write(chunk);
-                }
-                if(handler.Buffer.Length > 0)
-                    writer.Write(handler.Buffer.ToString());
+                stream = new CodeBlockStreamHandler(stream).Stream();
             }
-            else
+
+            await foreach (var part in stream)
             {
-                await foreach (var part in llmClient.CreateCompletionStreamAsync(promptBuilder.ToString()))
-                {
-                    writer.Write(part);
-                }
+                writer.Write(part);
             }
         }
         else
