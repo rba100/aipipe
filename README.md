@@ -32,7 +32,7 @@ Output:
 }
 ```
 
-The 'code block' flag `--cb` is best for when you want something specifically formatted, rather than for you to just read yourself. Without it the llm might right "Sure, here's you file..." which you might not want to pipe into another application.
+The 'code block' flag `--cb` is best for when you want something specifically formatted, rather than just for you to read yourself. Without it the LLM might write "Sure, here's you file..." which you might not want to pipe into another application.
 
 ### Options
 
