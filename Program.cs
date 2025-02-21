@@ -1,57 +1,52 @@
-﻿using System.Text;
+﻿using System;
+using System.IO;
+using System.Text;
 using System.Text.RegularExpressions;
 using System.CommandLine;
 using System.CommandLine.Invocation;
-
 using aipipe.llms;
 
 namespace aipipe;
 
 class Program
 {
-    static async Task Main(string[] args)
+    static async Task<int> Main(string[] args)
     {
         var options = new CommandLineOptions();
         var rootCommand = options.RootCommand;
 
         rootCommand.SetHandler(async (InvocationContext context) =>
         {
-            // Config
-            var isStream = context.ParseResult.GetValueForOption(options.StreamOption);
-            var codeBlock = context.ParseResult.GetValueForOption(options.CodeBlockOption);
-            var isReasoning = context.ParseResult.GetValueForOption(options.ReasoningOption);
-            var fast = context.ParseResult.GetValueForOption(options.FastOption);
-            var mic = context.ParseResult.GetValueForOption(options.MicOption);
-            var useOpenRouter = context.ParseResult.GetValueForOption(options.OpenRouterOption);
+            bool isStream = context.ParseResult.GetValueForOption(options.StreamOption);
+            bool isCodeBlock = context.ParseResult.GetValueForOption(options.CodeBlockOption);
+            bool isReasoning = context.ParseResult.GetValueForOption(options.ReasoningOption);
+            bool fast = context.ParseResult.GetValueForOption(options.FastOption);
+            bool mic = context.ParseResult.GetValueForOption(options.MicOption);
+            bool useOpenRouter = context.ParseResult.GetValueForOption(options.OpenRouterOption);
             ModelType modelType = isReasoning ? ModelType.Reasoning : fast ? ModelType.Fast : ModelType.Default;
 
-            // Prompt
-            var prompt = context.ParseResult.GetValueForArgument(options.PromptArgument);
-
+            string? prompt = context.ParseResult.GetValueForArgument(options.PromptArgument);
+            
             await RunAIQuery(new Config
             {
                 IsStream = isStream,
-                IsCodeBlock = codeBlock,
+                IsCodeBlock = isCodeBlock,
                 IsMic = mic,
                 UseOpenRouter = useOpenRouter,
                 ModelType = modelType
             }, prompt);
         });
 
-        await rootCommand.InvokeAsync(args);
+        return await rootCommand.InvokeAsync(args);
     }
 
     static async Task RunAIQuery(Config config, string? argPrompt)
     {
-        void PrintErrorAndExit(string message)
+        if ((string.IsNullOrEmpty(config.GroqEndpoint) || string.IsNullOrEmpty(config.GroqToken))
+            && (string.IsNullOrEmpty(config.OpenRouterApiKey) || !config.UseOpenRouter))
         {
-            Console.Error.WriteLine(message);
+            Console.Error.WriteLine("Invalid configuration: missing API keys.");
             Environment.Exit(1);
-        }
-
-        if ((string.IsNullOrEmpty(config.GroqEndpoint) || string.IsNullOrEmpty(config.GroqToken)) && (string.IsNullOrEmpty(config.OpenRouterApiKey) || !config.UseOpenRouter))
-        {
-            PrintErrorAndExit("Must set either GROQ_ENDPOINT/GROQ_API_KEY or OPENROUTER_API_KEY environment variables and specify --or for OpenRouter.");
         }
 
         ILLMClient llmClient;
@@ -61,50 +56,57 @@ class Program
         }
         catch (Exception ex)
         {
-            PrintErrorAndExit(ex.Message);
+            Console.Error.WriteLine(ex.Message);
+            Environment.Exit(1);
             return;
         }
 
-        // Build prompt
-        StringBuilder sb = new();
+        StringBuilder promptBuilder = new();
 
-        // Is there a file being piped to stdin
-        bool isFileStream = Console.IsInputRedirected;
-
-        if (isFileStream)
+        if (Console.IsInputRedirected)
         {
             var input = await Console.In.ReadToEndAsync();
-            sb.AppendLine(input);
+            promptBuilder.AppendLine(input);
         }
 
         if (config.IsMic)
         {
-            var mic = new Mic(config);
-            var micInput = await mic.GetMicInput();
-            if (micInput is null) // user aborted
-            {
+            var micObj = new Mic(config);
+            var micInput = await micObj.GetMicInput();
+            if (micInput is null)
                 Environment.Exit(0);
-            }
-            sb.AppendLine(micInput);
+            promptBuilder.AppendLine(micInput);
         }
 
-        if (argPrompt is not null)
+        if (argPrompt != null)
         {
-            if (sb.Length > 0)
-                sb.AppendLine("-----");
-            sb.AppendLine(argPrompt);
+            if (promptBuilder.Length > 0)
+                promptBuilder.AppendLine("-----");
+            promptBuilder.AppendLine(argPrompt);
         }
 
-        if (sb.Length == 0)
+        if (promptBuilder.Length == 0)
         {
-            PrintErrorAndExit("Error: Must provide prompt or pipe a file to stdin.");
+            Console.Error.WriteLine("No input provided.");
+            Environment.Exit(1);
         }
 
         if (config.IsStream)
         {
-            using (var writer = new StreamWriter(Console.OpenStandardOutput(), new UTF8Encoding(false)))
+            using var writer = new StreamWriter(Console.OpenStandardOutput(), new UTF8Encoding(false));
+            if (config.IsCodeBlock)
             {
-                await foreach (var part in llmClient.CreateCompletionStreamAsync(sb.ToString()))
+                var handler = new CodeBlockStreamHandler();
+                await foreach (var part in llmClient.CreateCompletionStreamAsync(promptBuilder.ToString()))
+                {
+                    var chunk = handler.Handle(part);
+                    if (chunk == null) break;
+                    writer.Write(chunk);
+                }
+            }
+            else
+            {
+                await foreach (var part in llmClient.CreateCompletionStreamAsync(promptBuilder.ToString()))
                 {
                     writer.Write(part);
                 }
@@ -112,27 +114,18 @@ class Program
         }
         else
         {
-            string aiOutput = await llmClient.CreateCompletionAsync(sb.ToString());
-
+            string response = await llmClient.CreateCompletionAsync(promptBuilder.ToString());
             if (config.IsCodeBlock)
-            {
-                aiOutput = ExtractCodeBlock(aiOutput);
-            }
+                response = ExtractCodeBlock(response);
 
-            using (var writer = new StreamWriter(Console.OpenStandardOutput(), new UTF8Encoding(false)))
-            {
-                writer.Write(aiOutput);
-            }
+            using var writer = new StreamWriter(Console.OpenStandardOutput(), new UTF8Encoding(false));
+            writer.Write(response);
         }
     }
 
     static string ExtractCodeBlock(string input)
     {
-        var match = Regex.Match(input, @"```[a-zA-Z0-9.]*\n([\s\S]+?)\n```");
-        if (match.Success)
-        {
-            return match.Groups[1].Value;
-        }
-        return input;
+        var m = Regex.Match(input, @"```[a-zA-Z0-9.]*\n([\s\S]+?)\n```", RegexOptions.Compiled);
+        return m.Success ? m.Groups[1].Value : input;
     }
 }
