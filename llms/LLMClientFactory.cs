@@ -4,8 +4,12 @@ public static class LLMClientFactory
 {
     public static ILLMClient CreateClient(Config config)
     {
-        if (config.UseOpenRouter && !string.IsNullOrEmpty(config.OpenRouterApiKey))
+        if (config.UseOpenRouter)        
         {
+            if(string.IsNullOrEmpty(config.OpenRouterApiKey))
+            {
+                throw new InvalidOperationException("Invalid configuration. Must set OPENROUTER_API_KEY environment variable.");
+            }
             return new OpenRouterClient(config);
         }
         else if (!string.IsNullOrEmpty(config.GroqEndpoint) && !string.IsNullOrEmpty(config.GroqToken))

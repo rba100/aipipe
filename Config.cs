@@ -21,6 +21,7 @@ public class Config
     public ModelType ModelType { get; set; } = ModelType.Default;
     public bool IsCodeBlock { get; set; }
     public bool IsMic { get; set; }
+    public bool IsStream { get; set; }
 
     public Config()
     {

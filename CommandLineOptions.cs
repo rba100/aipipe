@@ -8,6 +8,7 @@ public class CommandLineOptions
     public Option<bool> ReasoningOption { get; set; } = new Option<bool>("--r", "Use a reasoning model");
     public Option<bool> FastOption { get; set; } = new Option<bool>("--fast", "Use the Fast model");
     public Option<bool> MicOption { get; set; } = new Option<bool>("--mic", "Use microphone input");
+    public Option<bool> StreamOption { get; set; } = new Option<bool>("--stream", "Stream completions from the AI model");
     public Argument<string?> PromptArgument { get; set; } = new Argument<string?>(name:"prompt", description: "The prompt to send to the AI. Optional, but you must supply at least one input to the AI (prompt, --mic, or pipe in a file)", getDefaultValue: () => null);
     public Option<bool> OpenRouterOption { get; set; } = new Option<bool>("--or", "Use OpenRouter");
 
@@ -22,5 +23,6 @@ public class CommandLineOptions
         RootCommand.AddOption(MicOption);
         RootCommand.AddArgument(PromptArgument);
         RootCommand.AddOption(OpenRouterOption);
+        RootCommand.AddOption(StreamOption);
     }
 }

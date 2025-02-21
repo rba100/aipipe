@@ -17,6 +17,7 @@ class Program
         rootCommand.SetHandler(async (InvocationContext context) =>
         {
             // Config
+            var isStream = context.ParseResult.GetValueForOption(options.StreamOption);
             var codeBlock = context.ParseResult.GetValueForOption(options.CodeBlockOption);
             var isReasoning = context.ParseResult.GetValueForOption(options.ReasoningOption);
             var fast = context.ParseResult.GetValueForOption(options.FastOption);
@@ -27,9 +28,9 @@ class Program
             // Prompt
             var prompt = context.ParseResult.GetValueForArgument(options.PromptArgument);
 
-
             await RunAIQuery(new Config
             {
+                IsStream = isStream,
                 IsCodeBlock = codeBlock,
                 IsMic = mic,
                 UseOpenRouter = useOpenRouter,
@@ -99,16 +100,29 @@ class Program
             PrintErrorAndExit("Error: Must provide prompt or pipe a file to stdin.");
         }
 
-        string aiOutput = await llmClient.CreateCompletionAsync(sb.ToString());
-
-        if (config.IsCodeBlock)
+        if (config.IsStream)
         {
-            aiOutput = ExtractCodeBlock(aiOutput);
+            using (var writer = new StreamWriter(Console.OpenStandardOutput(), new UTF8Encoding(false)))
+            {
+                await foreach (var part in llmClient.CreateCompletionStreamAsync(sb.ToString()))
+                {
+                    writer.Write(part);
+                }
+            }
         }
-
-        using (var writer = new StreamWriter(Console.OpenStandardOutput(), new UTF8Encoding(false)))
+        else
         {
-            writer.Write(aiOutput);
+            string aiOutput = await llmClient.CreateCompletionAsync(sb.ToString());
+
+            if (config.IsCodeBlock)
+            {
+                aiOutput = ExtractCodeBlock(aiOutput);
+            }
+
+            using (var writer = new StreamWriter(Console.OpenStandardOutput(), new UTF8Encoding(false)))
+            {
+                writer.Write(aiOutput);
+            }
         }
     }
 

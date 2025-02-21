@@ -53,6 +53,11 @@ public class OpenRouterClient : ILLMClient
         return aiOutput;
     }
 
+    public IAsyncEnumerable<string> CreateCompletionStreamAsync(string prompt)
+    {
+        throw new NotImplementedException();
+    }
+
     public record ChatRequest(string? model, Message[]? messages);
 
     public record Message(string? role, string? content);
