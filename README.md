@@ -32,11 +32,12 @@ Output:
 }
 ```
 
-The 'code block' flag `--cb` is best for when you want something specifically formatted, rather than just for you to read yourself. Without it the LLM might write "Sure, here's you file..." which you might not want to pipe into another application.
+The 'code block' flag `--cb` is best for when you want something specifically formatted, rather than just for you to read yourself. Without it the LLM might write "Sure, here's your thing..." which you might not want to pipe into another application.
 
 ### Options
 
 - `--cb`: outputs only the first code block emitted by the LLM, discarding all other output. Otherwise all output is emitted to std out.
+- `--mic`: microphone input for the instruction prompt (probably Windows only)
 - `--r1`: use a reasoning model instead, for extra oomph.
 - `--fast`: use a fast-but-thick model instead, for extra speed.
 
