@@ -5,34 +5,30 @@ using System.Threading.Tasks;
 
 namespace aipipe.llms;
 
-public class GroqClient : ILLMClient
+public class GenericClient : ILLMClient
 {
-    private readonly string _groqToken;
-    private readonly string _groqEndpoint;
+    private readonly string _apiKey;
+    private readonly string _baseUrl;
     private readonly Config _config;
+    private readonly string _model;
 
-    public GroqClient(Config config)
+    public GenericClient(string apiKey, string baseUrl, Config config, string model)
     {
-        _groqEndpoint = config.GroqEndpoint!;
-        _groqToken = config.GroqToken!;
+        _apiKey = apiKey;
+        _baseUrl = baseUrl;
         _config = config;
+        _model = model;
     }
 
     public async Task<string> CreateCompletionAsync(string prompt)
     {
-        string groqModel = _config.GroqDefaultModel;
-        if (_config.ModelType == ModelType.Fast) groqModel =  _config.GroqFastModel;
-        if (_config.ModelType == ModelType.Reasoning) groqModel = _config.GroqReasoningModel;
-
-        ChatClient client = new(model: groqModel, credential: _groqToken!, new OpenAIClientOptions
+        ChatClient client = new(model: _model, credential: _apiKey, new OpenAIClientOptions
         {
-            Endpoint = new Uri(_groqEndpoint!),
+            Endpoint = new Uri(_baseUrl),
         });
 
         var systemMessage = Prompts.GetSystemPrompt(_config.IsCodeBlock);
-
         var options = new ChatCompletionOptions { };
-
         var messages = new ChatMessage[]
         {
             new SystemChatMessage(systemMessage),
@@ -45,19 +41,13 @@ public class GroqClient : ILLMClient
 
     public async IAsyncEnumerable<string> CreateCompletionStreamAsync(string prompt)
     {
-        string groqModel = _config.GroqDefaultModel;
-        if (_config.ModelType == ModelType.Fast) groqModel =  _config.GroqFastModel;
-        if (_config.ModelType == ModelType.Reasoning) groqModel = _config.GroqReasoningModel;
-
-        ChatClient client = new(model: groqModel, credential: _groqToken!, new OpenAIClientOptions
+        ChatClient client = new(model: _model, credential: _apiKey, new OpenAIClientOptions
         {
-            Endpoint = new Uri(_groqEndpoint!),
+            Endpoint = new Uri(_baseUrl),
         });
 
         var systemMessage = Prompts.GetSystemPrompt(_config.IsCodeBlock);
-
         var options = new ChatCompletionOptions { };
-
         var messages = new ChatMessage[]
         {
             new SystemChatMessage(systemMessage),
