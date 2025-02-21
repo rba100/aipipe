@@ -103,6 +103,8 @@ class Program
                     if (chunk == null) break;
                     writer.Write(chunk);
                 }
+                if(handler.Buffer.Length > 0)
+                    writer.Write(handler.Buffer.ToString());
             }
             else
             {

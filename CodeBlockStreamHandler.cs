@@ -12,54 +12,55 @@ enum CodeBlockState
 
 class CodeBlockStreamHandler
 {
-    private StringBuilder buffer = new();
+    public StringBuilder Buffer = new();
     private CodeBlockState state = CodeBlockState.SearchingOpening;
     private static readonly Regex openingRegex = new Regex("```[^\n]*\n", RegexOptions.Compiled);
+    private static readonly Regex potentialClosingRegex = new Regex("\n`{0,2}$", RegexOptions.Compiled);
 
     public string? Handle(string part)
     {
         if (state == CodeBlockState.Closed)
             return null;
-
-        buffer.Append(part);
+        
+        Buffer.Append(part);
+        string bufStr = Buffer.ToString();
 
         if (state == CodeBlockState.SearchingOpening)
         {
-            // Check if buffer contains a complete opening delimiter
-            var match = openingRegex.Match(buffer.ToString());
+            var match = openingRegex.Match(bufStr);
             if (match.Success)
             {
                 state = CodeBlockState.Open;
-                // Remove everything up to the end of the opening delimiter
-                buffer.Remove(0, match.Index + match.Length);
+                string remainingContent = bufStr.Substring(match.Index + match.Length);
+                Buffer.Clear();
+                Buffer.Append(remainingContent);
+                return Handle(""); // Process remaining content in Open state
             }
-            else {
-                // Opening delimiter not yet found; do not output any text
-                return "";
-            }
+            return "";
         }
 
-        string output = "";
         if (state == CodeBlockState.Open)
         {
-            string bufStr = buffer.ToString();
-            int closePos = bufStr.IndexOf("```");
+            // Check for potential closing marker first
+            if (potentialClosingRegex.IsMatch(bufStr))
+            {
+                return "";
+            }
+
+            int closePos = bufStr.IndexOf("\n```");
             if (closePos >= 0)
             {
-                // Capture content up to the closing delimiter
-                output = bufStr.Substring(0, closePos);
-                // Transition to closed state and clear the buffer
+                string output = bufStr.Substring(0, closePos);
                 state = CodeBlockState.Closed;
-                buffer.Clear();
+                Buffer.Clear();
+                return output;
             }
-            else
-            {
-                // No closing delimiter found, output all and clear buffer
-                output = bufStr;
-                buffer.Clear();
-            }
+
+            string output2 = bufStr;
+            Buffer.Clear();
+            return output2;
         }
 
-        return output;
+        return "";
     }
 }
