@@ -69,20 +69,22 @@ class Program
             promptBuilder.AppendLine(input);
         }
 
-        if (config.IsMic)
-        {
-            var micObj = new Mic(config);
-            var micInput = await micObj.GetMicInput();
-            if (micInput is null)
-                Environment.Exit(0);
-            promptBuilder.AppendLine(micInput);
-        }
-
         if (argPrompt != null)
         {
             if (promptBuilder.Length > 0)
                 promptBuilder.AppendLine("-----");
             promptBuilder.AppendLine(argPrompt);
+        }
+
+        if (config.IsMic)
+        {
+            var micObj = new Mic(config);
+            var micInput = await micObj.GetMicInput(useKeyboardInput: !Console.IsInputRedirected);
+            if (micInput is null)
+                Environment.Exit(0);
+            if (promptBuilder.Length > 0)
+                promptBuilder.AppendLine("-----");
+            promptBuilder.AppendLine(micInput);
         }
 
         if (promptBuilder.Length == 0)
@@ -93,13 +95,13 @@ class Program
 
         if (config.IsStream)
         {
-            using var writer = new StreamWriter(Console.OpenStandardOutput(), new UTF8Encoding(false));
             var stream = llmClient.CreateCompletionStreamAsync(promptBuilder.ToString());
             if (config.IsCodeBlock)
             {
                 stream = new CodeBlockStreamHandler(stream).Stream();
             }
 
+            using var writer = new StreamWriter(Console.OpenStandardOutput(), new UTF8Encoding(false));
             await foreach (var part in stream)
             {
                 writer.Write(part);

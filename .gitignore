@@ -72,3 +72,4 @@ bld/*.exe
 
 # Scripts
 setvars.ps1
+publish.ps1
