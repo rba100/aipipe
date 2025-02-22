@@ -9,6 +9,7 @@ namespace aipipe;
 public class Mic
 {
     private readonly Config _config;
+    private readonly TranscriptionClient _transcriptionClient;
 
     // Allow these to be configurable if needed
     private readonly float _silenceThreshold;
@@ -27,6 +28,7 @@ public class Mic
     public Mic(Config config, float? silenceThreshold = null, int? silenceDurationMs = null, int? minimumRecordingMs = null)
     {
         _config = config;
+        _transcriptionClient = new TranscriptionClient(config);
         _silenceThreshold = silenceThreshold ?? DEFAULT_SILENCE_THRESHOLD;
         _silenceDurationMs = silenceDurationMs ?? DEFAULT_SILENCE_DURATION_MS;
         _minimumRecordingMs = minimumRecordingMs ?? DEFAULT_MINIMUM_RECORDING_MS;
@@ -192,59 +194,6 @@ public class Mic
 
     private async Task<string?> ConvertAudioToText(byte[] audioData)
     {
-        if (string.IsNullOrEmpty(_config.GroqEndpoint))
-        {
-            Console.Error.WriteLine("GROQ_ENDPOINT environment variable not set.");
-            return null;
-        }
-        if (string.IsNullOrEmpty(_config.GroqToken))
-        {
-            Console.Error.WriteLine("GROQ_API_KEY environment variable not set.");
-            return null;
-        }
-
-        var client = new HttpClient();
-        client.BaseAddress = new Uri(_config.GroqEndpoint);
-        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", _config.GroqToken);
-
-        var requestContent = new MultipartFormDataContent();
-        var audioContent = new ByteArrayContent(audioData);
-        audioContent.Headers.ContentType = MediaTypeHeaderValue.Parse("audio/wav"); // Adjust if using a different format
-
-        requestContent.Add(audioContent, "file", "recording.wav"); // Adjust filename if needed
-        requestContent.Add(new StringContent("whisper-large-v3"), "model");
-
-        try
-        {
-            var response = await client.PostAsync("/openai/v1/audio/transcriptions", requestContent);
-            response.EnsureSuccessStatusCode(); // Throw exception if not a success
-
-            var responseString = await response.Content.ReadAsStringAsync();
-
-            // Parse the JSON response
-            using (JsonDocument document = JsonDocument.Parse(responseString))
-            {
-                JsonElement root = document.RootElement;
-                if (root.TryGetProperty("text", out JsonElement textElement))
-                {
-                    return textElement.GetString();
-                }
-                else
-                {
-                    Console.Error.WriteLine($"Error: 'text' field not found in response: {responseString}");
-                    return null;
-                }
-            }
-        }
-        catch (HttpRequestException ex)
-        {
-            Console.Error.WriteLine($"Error during transcription: {ex.Message}");
-            return null;
-        }
-        catch (JsonException ex)
-        {
-            Console.Error.WriteLine($"Error parsing JSON response: {ex.Message}");
-            return null;
-        }
+        return await _transcriptionClient.ConvertAudioToText(audioData);
     }
 }
