@@ -3,7 +3,7 @@ using OpenAI.Chat;
 using System;
 using System.Threading.Tasks;
 
-namespace aipipe.llms;
+namespace aipipe.Llms;
 
 public class GenericClient : ILLMClient
 {

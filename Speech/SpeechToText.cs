@@ -1,12 +1,8 @@
 using NAudio.Wave;
-using System.Net.Http.Headers;
-using System.Text.Json;
 
-namespace aipipe;
+namespace aipipe.Speech;
 
-#pragma warning disable CS0162
-
-public class Mic
+public class SpeechToText
 {
     private readonly Config _config;
     private readonly TranscriptionClient _transcriptionClient;
@@ -25,7 +21,7 @@ public class Mic
     private const bool DEBUG = false;
     private const int DEBUG_OUTPUT_INTERVAL_MS = 100;
 
-    public Mic(Config config, float? silenceThreshold = null, int? silenceDurationMs = null, int? minimumRecordingMs = null)
+    public SpeechToText(Config config, float? silenceThreshold = null, int? silenceDurationMs = null, int? minimumRecordingMs = null)
     {
         _config = config;
         _transcriptionClient = new TranscriptionClient(config);
@@ -34,14 +30,24 @@ public class Mic
         _minimumRecordingMs = minimumRecordingMs ?? DEFAULT_MINIMUM_RECORDING_MS;
     }
 
+    private static void DebugPrint(string message)
+    {
+        #pragma warning disable CS0162
+        if (DEBUG)
+        {
+            Console.Error.WriteLine(message);
+        }
+        #pragma warning restore CS0162
+    }
+
     public async Task<string?> GetMicInput(bool useKeyboardInput = true)
     {
-        Console.Error.WriteLine($"Starting recording with useKeyboardInput={useKeyboardInput}");
+        DebugPrint($"Starting recording with useKeyboardInput={useKeyboardInput}");
         var waveIn = new WaveInEvent();
         waveIn.WaveFormat = new WaveFormat(rate: 16000, bits: 16, channels: 1);
-        Console.Error.WriteLine($"Initialized WaveIn with format: {waveIn.WaveFormat}");
+        DebugPrint($"Initialized WaveIn with format: {waveIn.WaveFormat}");
 
-        var recording = new System.IO.MemoryStream();
+        var recording = new MemoryStream();
         var writer = new WaveFileWriter(recording, waveIn.WaveFormat);
 
         if (useKeyboardInput)
@@ -67,7 +73,7 @@ public class Mic
             }
             catch (InvalidOperationException)
             {
-                Console.Error.WriteLine("Cannot use keyboard input when console is redirected. Use --auto-detect-silence instead.");
+                Console.Error.WriteLine("Cannot use keyboard input when console is redirected.");
                 Environment.Exit(1);
                 return null;
             }
@@ -80,56 +86,55 @@ public class Mic
             var recordingStartTime = DateTime.Now;
             var isSilent = true;
             var hasSpokenOnce = false;
-            if (DEBUG) {
-                Console.Error.WriteLine("Initializing silence detection mode:");
-                Console.Error.WriteLine($"  Silence threshold: {_silenceThreshold}");
-                Console.Error.WriteLine($"  Silence duration: {_silenceDurationMs}ms");
-                Console.Error.WriteLine($"  Minimum recording: {_minimumRecordingMs}ms");
-            }
+
+            DebugPrint("Initializing silence detection mode:");
+            DebugPrint($"  Silence threshold: {_silenceThreshold}");
+            DebugPrint($"  Silence duration: {_silenceDurationMs}ms");
+            DebugPrint($"  Minimum recording: {_minimumRecordingMs}ms");
 
             waveIn.DataAvailable += (sender, e) =>
             {
                 writer.Write(e.Buffer, 0, e.BytesRecorded);
-                
+
                 var rms = CalculateRMS(e.Buffer);
                 var currentTime = DateTime.Now;
 
                 // Throttle debug output
-                if (DEBUG && (currentTime - _lastDebugOutput).TotalMilliseconds >= DEBUG_OUTPUT_INTERVAL_MS)
+                if ((currentTime - _lastDebugOutput).TotalMilliseconds >= DEBUG_OUTPUT_INTERVAL_MS)
                 {
-                    Console.Error.WriteLine($"Audio level: {rms:F4} | Silent: {isSilent} | Has spoken: {hasSpokenOnce}");
+                    DebugPrint($"Audio level: {rms:F4} | Silent: {isSilent} | Has spoken: {hasSpokenOnce}");
                     if (isSilent && hasSpokenOnce)
                     {
                         var silenceDuration = (currentTime - silenceStartTime).TotalMilliseconds;
                         var totalDuration = (currentTime - recordingStartTime).TotalMilliseconds;
-                        Console.Error.WriteLine($"  Silence duration: {silenceDuration:F0}ms | Total duration: {totalDuration:F0}ms");
+                        DebugPrint($"  Silence duration: {silenceDuration:F0}ms | Total duration: {totalDuration:F0}ms");
                     }
                     _lastDebugOutput = currentTime;
                 }
-                
+
                 if (rms < _silenceThreshold)
                 {
                     if (!isSilent)
                     {
-                        if(DEBUG) Console.Error.WriteLine($"\nSilence started at {currentTime:HH:mm:ss.fff}");
+                        DebugPrint($"\nSilence started at {currentTime:HH:mm:ss.fff}");
                         silenceStartTime = currentTime;
                         isSilent = true;
                     }
-                    else if (hasSpokenOnce && 
+                    else if (hasSpokenOnce &&
                             (currentTime - silenceStartTime).TotalMilliseconds > _silenceDurationMs &&
                             (currentTime - recordingStartTime).TotalMilliseconds > _minimumRecordingMs)
                     {
-                        if(DEBUG) Console.Error.WriteLine("\nStopping recording due to silence threshold reached:");
-                        if(DEBUG) Console.Error.WriteLine($"  Total duration: {(currentTime - recordingStartTime).TotalMilliseconds:F0}ms");
-                        if(DEBUG) Console.Error.WriteLine($"  Final silence duration: {(currentTime - silenceStartTime).TotalMilliseconds:F0}ms");
+                        DebugPrint("\nStopping recording due to silence threshold reached:");
+                        DebugPrint($"  Total duration: {(currentTime - recordingStartTime).TotalMilliseconds:F0}ms");
+                        DebugPrint($"  Final silence duration: {(currentTime - silenceStartTime).TotalMilliseconds:F0}ms");
                         waveIn.StopRecording();
                     }
                 }
                 else
                 {
-                    if (DEBUG && isSilent)
+                    if (isSilent)
                     {
-                        Console.Error.WriteLine($"\nSpeech detected at {currentTime:HH:mm:ss.fff} (Level: {rms:F4})");
+                        DebugPrint($"\nSpeech detected at {currentTime:HH:mm:ss.fff} (Level: {rms:F4})");
                     }
                     isSilent = false;
                     hasSpokenOnce = true;
@@ -137,35 +142,31 @@ public class Mic
             };
 
             Console.Error.WriteLine("\nStarting recording - Will automatically stop after silence is detected");
-            Console.Error.WriteLine("Waiting for speech...\n");
+            Console.Error.WriteLine("Waiting for speech...");
             waveIn.StartRecording();
 
             // Use simple boolean flag since WaveInEvent will trigger RecordingStopped event
             var isRecording = true;
-            waveIn.RecordingStopped += (s, e) => 
+            waveIn.RecordingStopped += (s, e) =>
             {
                 isRecording = false;
-                Console.Error.WriteLine("Recording stopped");
             };
-            
+
             while (isRecording)
             {
                 await Task.Delay(100);
             }
         }
 
-        Console.Error.WriteLine("\nProcessing recorded audio...");
+        Console.Error.WriteLine("Processing...");
         writer.Flush();
-        
-        try 
+
+        try
         {
             recording.Position = 0;
             var audioData = recording.ToArray();
-            if (DEBUG) {
-                Console.Error.WriteLine($"Captured {audioData.Length} bytes of audio");
-                Console.Error.WriteLine("Converting audio to text...");
-            }
-            
+            DebugPrint($"Captured {audioData.Length} bytes of audio");
+
             var text = await ConvertAudioToText(audioData);
             Console.Error.WriteLine(text ?? "Failed to convert audio to text");
             return text;
@@ -185,7 +186,7 @@ public class Mic
         float sum = 0;
         for (int i = 0; i < buffer.Length; i += 2)
         {
-            short sample = (short)((buffer[i + 1] << 8) | buffer[i]);
+            short sample = (short)(buffer[i + 1] << 8 | buffer[i]);
             float normalized = sample / 32768f;
             sum += normalized * normalized;
         }

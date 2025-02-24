@@ -4,7 +4,9 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.CommandLine;
 using System.CommandLine.Invocation;
-using aipipe.llms;
+
+using aipipe.Llms;
+using aipipe.Speech;
 
 namespace aipipe;
 
@@ -78,7 +80,7 @@ class Program
 
         if (config.IsMic)
         {
-            var micObj = new Mic(config);
+            var micObj = new SpeechToText(config);
             var micInput = await micObj.GetMicInput(useKeyboardInput: !Console.IsInputRedirected);
             if (micInput is null)
                 Environment.Exit(0);
