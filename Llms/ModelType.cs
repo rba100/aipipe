@@ -1,4 +1,4 @@
-namespace aipipe.llms;
+namespace aipipe.Llms;
 
 public enum ModelType
 {

@@ -1,6 +1,6 @@
 using System.Threading.Tasks;
 
-namespace aipipe.llms;
+namespace aipipe.Llms;
 
 public interface ILLMClient
 {
