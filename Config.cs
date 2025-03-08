@@ -1,5 +1,5 @@
 using System;
-using aipipe.llms;
+using aipipe.Llms;
 using YamlDotNet.Serialization;
 using YamlDotNet.Serialization.NamingConventions;
 using System.IO;
@@ -17,7 +17,7 @@ public class Config
     public string OpenRouterFastModel { get; set; } = "meta-llama/llama-3-8b-instruct";
     public string OpenRouterReasoningModel { get; set; } = "deepseek/deepseek-r1-distill-llama-70b:free";
     public string GroqFastModel { get; set; } = "llama-3.1-8b-instant";
-    public string GroqReasoningModel { get; set; } = "deepseek-r1-distill-llama-70b";
+    public string GroqReasoningModel { get; set; } = "qwen-2.5-32b";
     public ModelType ModelType { get; set; } = ModelType.Default;
     public bool IsCodeBlock { get; set; }
     public bool IsMic { get; set; }
@@ -25,9 +25,14 @@ public class Config
 
     public Config()
     {
-        GroqEndpoint = Environment.GetEnvironmentVariable("GROQ_ENDPOINT") ?? "https://api.groq.com/openai/v1";
-        GroqToken = Environment.GetEnvironmentVariable("GROQ_API_KEY");
-        OpenRouterApiKey = Environment.GetEnvironmentVariable("OPENROUTER_API_KEY");
+
+    }
+
+    public Config WithUserProfile()
+    {
+        this.GroqEndpoint = Environment.GetEnvironmentVariable("GROQ_ENDPOINT") ?? "https://api.groq.com/openai/v1";
+        this.GroqToken = Environment.GetEnvironmentVariable("GROQ_API_KEY");
+        this.OpenRouterApiKey = Environment.GetEnvironmentVariable("OPENROUTER_API_KEY");
 
         // Load from YAML file
         var homeDir = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
@@ -40,23 +45,23 @@ public class Config
             {
                 var deserializer = new DeserializerBuilder()
                     .WithNamingConvention(CamelCaseNamingConvention.Instance)
+                    .IgnoreUnmatchedProperties()
                     .Build();
 
                 using (var reader = new StreamReader(configFile))
                 {
                     var yamlConfig = deserializer.Deserialize<Config>(reader);
+                    this.UseOpenRouter =this.UseOpenRouter || yamlConfig.UseOpenRouter;
+                    this.OpenRouterApiKey ??= yamlConfig.OpenRouterApiKey;
+                    this.OpenRouterDefaultModel = yamlConfig.OpenRouterDefaultModel ?? this.OpenRouterDefaultModel;
+                    this.OpenRouterFastModel = yamlConfig.OpenRouterFastModel ?? this.OpenRouterFastModel;
+                    this.OpenRouterReasoningModel = yamlConfig.OpenRouterReasoningModel ?? this.OpenRouterReasoningModel;
 
-                    UseOpenRouter = UseOpenRouter || yamlConfig.UseOpenRouter;
-                    OpenRouterApiKey ??= yamlConfig.OpenRouterApiKey;
-                    OpenRouterDefaultModel = yamlConfig.OpenRouterDefaultModel ?? OpenRouterDefaultModel;
-                    OpenRouterFastModel = yamlConfig.OpenRouterFastModel ?? OpenRouterFastModel;
-                    OpenRouterReasoningModel = yamlConfig.OpenRouterReasoningModel ?? OpenRouterReasoningModel;
-
-                    GroqEndpoint ??= yamlConfig.GroqEndpoint;
-                    GroqToken ??= yamlConfig.GroqToken;
-                    GroqDefaultModel = yamlConfig.GroqDefaultModel ?? GroqDefaultModel;
-                    GroqFastModel = yamlConfig.GroqFastModel ?? GroqFastModel;
-                    GroqReasoningModel = yamlConfig.GroqReasoningModel ?? GroqReasoningModel;
+                    this.GroqEndpoint ??= yamlConfig.GroqEndpoint;
+                    this.GroqToken ??= yamlConfig.GroqToken;
+                    this.GroqDefaultModel = yamlConfig.GroqDefaultModel ?? this.GroqDefaultModel;
+                    this.GroqFastModel = yamlConfig.GroqFastModel ?? this.GroqFastModel;
+                    this.GroqReasoningModel = yamlConfig.GroqReasoningModel ?? this.GroqReasoningModel;
                 }
             }
             catch (Exception ex)
@@ -64,5 +69,6 @@ public class Config
                 Console.Error.WriteLine($"Error loading config file: {ex.Message}");
             }
         }
+        return this;
     }
 }

@@ -36,7 +36,7 @@ class Program
                 IsMic = mic,
                 UseOpenRouter = useOpenRouter,
                 ModelType = modelType
-            }, prompt);
+            }.WithUserProfile(), prompt);
         });
 
         return await rootCommand.InvokeAsync(args);
