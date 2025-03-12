@@ -1,0 +1,1 @@
+dotnet publish -r linux-arm64 -c Release -o bld --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:DebugType=None aipipe.csproj

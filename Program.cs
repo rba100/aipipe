@@ -104,10 +104,14 @@ class Program
             }
 
             using var writer = new StreamWriter(Console.OpenStandardOutput(), new UTF8Encoding(false));
+            bool endsWithNewline = false;
             await foreach (var part in stream)
             {
                 writer.Write(part);
+                endsWithNewline = part.EndsWith("\n");
             }
+            if (!endsWithNewline)
+                writer.Write(Environment.NewLine);
         }
         else
         {
@@ -116,7 +120,10 @@ class Program
                 response = ExtractCodeBlock(response);
 
             using var writer = new StreamWriter(Console.OpenStandardOutput(), new UTF8Encoding(false));
+            if (!response.EndsWith("\n"))
+                response += Environment.NewLine;
             writer.Write(response);
+
         }
     }
 
