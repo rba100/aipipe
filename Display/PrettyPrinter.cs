@@ -21,6 +21,8 @@ public class PrettyPrinter : IDisposable
     private static readonly Regex inlineCodeRegex = new(@"`[^`\n]+`", RegexOptions.Compiled);
     private static readonly Regex codeBlockStartRegex = new(@"^```", RegexOptions.Compiled);
     private static readonly Regex codeBlockEndRegex = new(@"^```\s*$", RegexOptions.Compiled);
+    private static readonly Regex numberedListRegex = new(@"^(\s*)(\d+\.)\s+(.*)$", RegexOptions.Compiled);
+    private static readonly Regex unorderedListRegex = new(@"^(\s*)([-*])\s+(.*)$", RegexOptions.Compiled);
 
     public PrettyPrinter()
     {
@@ -108,6 +110,18 @@ public class PrettyPrinter : IDisposable
             return;
         }
 
+        if (numberedListRegex.IsMatch(line))
+        {
+            PrintNumberedList(line);
+            return;
+        }
+
+        if (unorderedListRegex.IsMatch(line))
+        {
+            PrintUnorderedList(line);
+            return;
+        }
+
         var lastIndex = 0;
         var inlineMatches = inlineCodeRegex.Matches(line);
 
@@ -131,6 +145,50 @@ public class PrettyPrinter : IDisposable
         {
             SetColor(ConsoleColor.Green);
             Console.Write(line[lastIndex..]);
+        }
+    }
+
+    private void PrintNumberedList(string line)
+    {
+        var match = numberedListRegex.Match(line);
+        if (match.Success)
+        {
+            var indentation = match.Groups[1].Value;
+            var number = match.Groups[2].Value;
+            var content = match.Groups[3].Value;
+
+            // Print indentation
+            Console.Write(indentation);
+
+            // Print number with highlight
+            SetColor(ConsoleColor.Blue);
+            Console.Write(number);
+
+            // Print content
+            SetColor(ConsoleColor.Green);
+            Console.Write(" " + content);
+        }
+    }
+
+    private void PrintUnorderedList(string line)
+    {
+        var match = unorderedListRegex.Match(line);
+        if (match.Success)
+        {
+            var indentation = match.Groups[1].Value;
+            var bullet = match.Groups[2].Value;
+            var content = match.Groups[3].Value;
+
+            // Print indentation
+            Console.Write(indentation);
+
+            // Print bullet with highlight
+            SetColor(ConsoleColor.Blue);
+            Console.Write(bullet);
+
+            // Print content
+            SetColor(ConsoleColor.Green);
+            Console.Write(" " + content);
         }
     }
 
