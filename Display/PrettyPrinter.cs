@@ -279,7 +279,7 @@ public class PrettyPrinter : IDisposable
             Console.Write(indentation);
 
             // Extract and print each '>' character in blue
-            var markers = quoteMarkers.TrimEnd();
+            var markers = quoteMarkers;
             for (int i = 0; i < markers.Length; i++)
             {
                 if (markers[i] == '>')
