@@ -26,6 +26,8 @@ public class PrettyPrinter : IDisposable
     private static readonly Regex numberedListRegex = new(@"^(\s*)(\d+\.)\s+(.*)$", RegexOptions.Compiled);
     private static readonly Regex unorderedListRegex = new(@"^(\s*)([-*])\s+(.*)$", RegexOptions.Compiled);
     private static readonly Regex emphasisRegex = new(@"(\*\*|__)(.*?)\1|(\*|_)(.*?)\3", RegexOptions.Compiled);
+    private static readonly Regex blockQuoteRegex = new(@"^(\s*)((?:>\s*)+)(.*)$", RegexOptions.Compiled);
+    private static readonly Regex horizontalRuleRegex = new(@"^(\s*)([-*_])\2\2+\s*$", RegexOptions.Compiled);
 
     public PrettyPrinter()
     {
@@ -113,6 +115,18 @@ public class PrettyPrinter : IDisposable
             return;
         }
 
+        if (horizontalRuleRegex.IsMatch(line))
+        {
+            PrintHorizontalRule(line);
+            return;
+        }
+
+        if (blockQuoteRegex.IsMatch(line))
+        {
+            PrintBlockQuote(line);
+            return;
+        }
+
         if (numberedListRegex.IsMatch(line))
         {
             PrintNumberedList(line);
@@ -161,7 +175,7 @@ public class PrettyPrinter : IDisposable
             // Print the match with appropriate formatting
             if (type == "code")
             {
-                SetColor(ConsoleColor.Magenta);
+                SetColor(ConsoleColor.Cyan);
                 Console.Write(line[index..(index + length)]);
             }
             else if (type == "emphasis")
@@ -250,6 +264,45 @@ public class PrettyPrinter : IDisposable
             var headerText = header[hashCount..].TrimStart();
             Console.Write(new string('#', hashCount) + " " + headerText.ToUpperInvariant());
         }
+    }
+
+    private void PrintBlockQuote(string line)
+    {
+        var match = blockQuoteRegex.Match(line);
+        if (match.Success)
+        {
+            var indentation = match.Groups[1].Value;
+            var quoteMarkers = match.Groups[2].Value;
+            var content = match.Groups[3].Value;
+
+            // Print indentation
+            Console.Write(indentation);
+
+            // Extract and print each '>' character in blue
+            var markers = quoteMarkers.TrimEnd();
+            for (int i = 0; i < markers.Length; i++)
+            {
+                if (markers[i] == '>')
+                {
+                    SetColor(ConsoleColor.Blue);
+                    Console.Write('>');
+                }
+                else
+                {
+                    Console.Write(markers[i]);
+                }
+            }
+
+            // Print content in cyan
+            SetColor(ConsoleColor.Cyan);
+            Console.Write(content);
+        }
+    }
+
+    private void PrintHorizontalRule(string line)
+    {
+        SetColor(ConsoleColor.Yellow);
+        Console.Write(line);
     }
 
     private void SetColor(ConsoleColor color)
