@@ -1,6 +1,8 @@
 using System;
 using System.Text;
 using System.Text.RegularExpressions;
+using System.Linq;
+using System.Collections.Generic;
 
 namespace aipipe.Display;
 
@@ -23,6 +25,7 @@ public class PrettyPrinter : IDisposable
     private static readonly Regex codeBlockEndRegex = new(@"^```\s*$", RegexOptions.Compiled);
     private static readonly Regex numberedListRegex = new(@"^(\s*)(\d+\.)\s+(.*)$", RegexOptions.Compiled);
     private static readonly Regex unorderedListRegex = new(@"^(\s*)([-*])\s+(.*)$", RegexOptions.Compiled);
+    private static readonly Regex emphasisRegex = new(@"(\*\*|__)(.*?)\1|(\*|_)(.*?)\3", RegexOptions.Compiled);
 
     public PrettyPrinter()
     {
@@ -122,24 +125,63 @@ public class PrettyPrinter : IDisposable
             return;
         }
 
-        var lastIndex = 0;
-        var inlineMatches = inlineCodeRegex.Matches(line);
+        PrintFormattedText(line);
+    }
 
-        foreach (Match match in inlineMatches)
+    private void PrintFormattedText(string line)
+    {
+        var lastIndex = 0;
+        var inlineCodeMatches = inlineCodeRegex.Matches(line);
+        var emphasisMatches = emphasisRegex.Matches(line);
+        
+        // Combine and sort all matches by index
+        var allMatches = new List<(int Index, int Length, string Type)>();
+        
+        foreach (Match match in inlineCodeMatches)
         {
-            // Print text before inline code
-            if (match.Index > lastIndex)
+            allMatches.Add((match.Index, match.Length, "code"));
+        }
+        
+        foreach (Match match in emphasisMatches)
+        {
+            allMatches.Add((match.Index, match.Length, "emphasis"));
+        }
+        
+        allMatches = allMatches.OrderBy(m => m.Index).ToList();
+        
+        foreach (var (index, length, type) in allMatches)
+        {
+            // Print text before the match
+            if (index > lastIndex)
             {
                 SetColor(ConsoleColor.Green);
-                Console.Write(line[lastIndex..match.Index]);
+                Console.Write(line[lastIndex..index]);
             }
-
-            // Print inline code
-            SetColor(ConsoleColor.Magenta);
-            Console.Write(match.Value);
-            lastIndex = match.Index + match.Length;
+            
+            // Print the match with appropriate formatting
+            if (type == "code")
+            {
+                SetColor(ConsoleColor.Magenta);
+                Console.Write(line[index..(index + length)]);
+            }
+            else if (type == "emphasis")
+            {
+                SetColor(ConsoleColor.White);
+                if (isBoldSupported)
+                {
+                    Console.Write("\u001b[1m");
+                    Console.Write(line[index..(index + length)]);
+                    Console.Write("\u001b[22m");
+                }
+                else
+                {
+                    Console.Write(line[index..(index + length)]);
+                }
+            }
+            
+            lastIndex = index + length;
         }
-
+        
         // Print remaining text
         if (lastIndex < line.Length)
         {
@@ -164,9 +206,9 @@ public class PrettyPrinter : IDisposable
             SetColor(ConsoleColor.Blue);
             Console.Write(number);
 
-            // Print content
-            SetColor(ConsoleColor.Green);
-            Console.Write(" " + content);
+            // Print content with formatting
+            Console.Write(" ");
+            PrintFormattedText(content);
         }
     }
 
@@ -186,9 +228,9 @@ public class PrettyPrinter : IDisposable
             SetColor(ConsoleColor.Blue);
             Console.Write(bullet);
 
-            // Print content
-            SetColor(ConsoleColor.Green);
-            Console.Write(" " + content);
+            // Print content with formatting
+            Console.Write(" ");
+            PrintFormattedText(content);
         }
     }
 

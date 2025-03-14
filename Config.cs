@@ -14,8 +14,8 @@ public class Config
     public bool UseOpenRouter { get; set; }
     public string GroqDefaultModel { get; set; } = "llama-3.3-70b-versatile";
     public string OpenRouterDefaultModel { get; set; } = "google/gemini-2.0-flash-001";
-    public string OpenRouterFastModel { get; set; } = "meta-llama/llama-3-8b-instruct";
-    public string OpenRouterReasoningModel { get; set; } = "deepseek/deepseek-r1-distill-llama-70b:free";
+    public string OpenRouterFastModel { get; set; } = "google/gemini-2.0-flash-001";
+    public string OpenRouterReasoningModel { get; set; } = "deepseek/deepseek-r1";
     public string GroqFastModel { get; set; } = "llama-3.1-8b-instant";
     public string GroqReasoningModel { get; set; } = "qwen-2.5-32b";
     public ModelType ModelType { get; set; } = ModelType.Default;

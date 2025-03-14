@@ -1,6 +1,7 @@
 using OpenAI;
 using OpenAI.Chat;
 using System;
+using System.ClientModel;
 using System.Threading.Tasks;
 
 namespace aipipe.Llms;
@@ -22,7 +23,7 @@ public class GenericClient : ILLMClient
 
     public async Task<string> CreateCompletionAsync(string prompt)
     {
-        ChatClient client = new(model: _model, credential: _apiKey, new OpenAIClientOptions
+        ChatClient client = new(model: _model, credential: new ApiKeyCredential(_apiKey), new OpenAIClientOptions
         {
             Endpoint = new Uri(_baseUrl),
         });
@@ -41,7 +42,7 @@ public class GenericClient : ILLMClient
 
     public async IAsyncEnumerable<string> CreateCompletionStreamAsync(string prompt)
     {
-        ChatClient client = new(model: _model, credential: _apiKey, new OpenAIClientOptions
+        ChatClient client = new(model: _model, credential: new ApiKeyCredential(_apiKey), new OpenAIClientOptions
         {
             Endpoint = new Uri(_baseUrl),
         });
@@ -56,7 +57,8 @@ public class GenericClient : ILLMClient
 
         await foreach(var thing in client.CompleteChatStreamingAsync(messages, options, CancellationToken.None))
         {
-            yield return string.Join("", thing.ContentUpdate.Select(x => x.Text));
+            var textUpdates = thing.ContentUpdate.Where(u=>u.Kind == ChatMessageContentPartKind.Text);
+            yield return string.Join("", textUpdates.Select(x => x.Text));
         }
     }
 }
