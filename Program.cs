@@ -7,6 +7,7 @@ using System.CommandLine.Invocation;
 
 using aipipe.Llms;
 using aipipe.Speech;
+using aipipe.Display;
 
 namespace aipipe;
 
@@ -25,6 +26,7 @@ class Program
             bool fast = context.ParseResult.GetValueForOption(options.FastOption);
             bool mic = context.ParseResult.GetValueForOption(options.MicOption);
             bool useOpenRouter = context.ParseResult.GetValueForOption(options.OpenRouterOption);
+            bool pretty = context.ParseResult.GetValueForOption(options.PrettyOption);
             ModelType modelType = isReasoning ? ModelType.Reasoning : fast ? ModelType.Fast : ModelType.Default;
 
             string? prompt = context.ParseResult.GetValueForArgument(options.PromptArgument);
@@ -36,13 +38,13 @@ class Program
                 IsMic = mic,
                 UseOpenRouter = useOpenRouter,
                 ModelType = modelType
-            }.WithUserProfile(), prompt);
+            }.WithUserProfile(), prompt, pretty);
         });
 
         return await rootCommand.InvokeAsync(args);
     }
 
-    static async Task RunAIQuery(Config config, string? argPrompt)
+    static async Task RunAIQuery(Config config, string? argPrompt, bool pretty)
     {
         if ((string.IsNullOrEmpty(config.GroqEndpoint) || string.IsNullOrEmpty(config.GroqToken))
             && (string.IsNullOrEmpty(config.OpenRouterApiKey) || !config.UseOpenRouter))
@@ -104,13 +106,19 @@ class Program
             }
 
             using var writer = new StreamWriter(Console.OpenStandardOutput(), new UTF8Encoding(false));
+            PrettyPrinter? printer = pretty ? new PrettyPrinter() : null;
             bool endsWithNewline = false;
             await foreach (var part in stream)
             {
-                writer.Write(part);
+                if(printer != null)
+                    printer.Print(part);
+                else
+                    writer.Write(part);
                 endsWithNewline = part.EndsWith("\n");
             }
-            if (!endsWithNewline)
+            if(printer != null)
+                printer.Dispose();
+            if (!endsWithNewline && !pretty)
                 writer.Write(Environment.NewLine);
         }
         else
@@ -119,11 +127,18 @@ class Program
             if (config.IsCodeBlock)
                 response = ExtractCodeBlock(response);
 
-            using var writer = new StreamWriter(Console.OpenStandardOutput(), new UTF8Encoding(false));
-            if (!response.EndsWith("\n"))
-                response += Environment.NewLine;
-            writer.Write(response);
-
+            if (pretty)
+            {
+                using var printer = new PrettyPrinter();
+                printer.Print(response);
+            }
+            else
+            {
+                if (!response.EndsWith("\n"))
+                    response += Environment.NewLine;
+                using var writer = new StreamWriter(Console.OpenStandardOutput(), new UTF8Encoding(false));
+                writer.Write(response);
+            }
         }
     }
 
