@@ -47,146 +47,33 @@ type Token struct {
 type SyntaxHighlighter struct {
 	languageRegex   *regexp.Regexp
 	currentLanguage string
-
-	// Python specific regexes
-	pythonKeywords        map[string]bool
-	pythonNumberRegex     *regexp.Regexp
-	pythonIdentifierRegex *regexp.Regexp
-	pythonCommentRegex    *regexp.Regexp
-	pythonWhitespaceRegex *regexp.Regexp
 }
 
 // NewSyntaxHighlighter creates a new syntax highlighter
 func NewSyntaxHighlighter() *SyntaxHighlighter {
 	h := &SyntaxHighlighter{
 		languageRegex: regexp.MustCompile(`^\s*\x60\x60\x60(\w+)`),
-
-		// Python specific regexes
-		pythonKeywords: map[string]bool{
-			"and":      true,
-			"as":       true,
-			"assert":   true,
-			"async":    true,
-			"await":    true,
-			"break":    true,
-			"class":    true,
-			"continue": true,
-			"def":      true,
-			"del":      true,
-			"elif":     true,
-			"else":     true,
-			"except":   true,
-			"False":    true,
-			"finally":  true,
-			"for":      true,
-			"from":     true,
-			"global":   true,
-			"if":       true,
-			"import":   true,
-			"in":       true,
-			"is":       true,
-			"lambda":   true,
-			"None":     true,
-			"nonlocal": true,
-			"not":      true,
-			"or":       true,
-			"pass":     true,
-			"raise":    true,
-			"return":   true,
-			"True":     true,
-			"try":      true,
-			"while":    true,
-			"with":     true,
-			"yield":    true,
-		},
-		pythonNumberRegex:     regexp.MustCompile(`^[0-9]+(\.[0-9]+)?([eE][+-]?[0-9]+)?`),
-		pythonIdentifierRegex: regexp.MustCompile(`^[a-zA-Z_][a-zA-Z0-9_]*`),
-		pythonCommentRegex:    regexp.MustCompile(`^#.*`),
-		pythonWhitespaceRegex: regexp.MustCompile(`^[ \t\r\n]+`),
 	}
 
 	return h
 }
 
-// isStringStart checks if the code starts with a string delimiter
-func isStringStart(code string) bool {
-	return len(code) > 0 && (code[0] == '"' || code[0] == '\'')
-}
-
-// findStringEnd finds the end of a string literal
-func findStringEnd(code string) int {
-	if len(code) < 2 {
-		return -1
-	}
-
-	delimiter := code[0]
-	for i := 1; i < len(code); i++ {
-		if code[i] == '\\' && i+1 < len(code) {
-			// Skip escaped character
-			i++
-			continue
-		}
-		if code[i] == delimiter {
-			return i + 1
-		}
-	}
-
-	return -1
-}
-
 // parsePython parses Python code and returns a sequence of tokens
 func (h *SyntaxHighlighter) parsePython(code string) []Token {
+	// Use the parsing package's Python parser
+	parsingTokens, err := parsing.ParsePython(code)
+	if err != nil {
+		// If there's an error, return a single token with the original code
+		return []Token{{Type: TokenOther, Text: code}}
+	}
+
+	// Convert parsing.Token to display.Token
 	var tokens []Token
-
-	// Process the code without trimming whitespace
-	// This preserves indentation
-
-	for len(code) > 0 {
-		// Try to match whitespace first to preserve indentation
-		if match := h.pythonWhitespaceRegex.FindString(code); match != "" {
-			tokens = append(tokens, Token{Type: TokenWhitespace, Text: match})
-			code = code[len(match):]
-			continue
-		}
-
-		// Try to match a comment
-		if match := h.pythonCommentRegex.FindString(code); match != "" {
-			tokens = append(tokens, Token{Type: TokenComment, Text: match})
-			code = code[len(match):]
-			continue
-		}
-
-		// Try to match a string literal
-		if isStringStart(code) {
-			end := findStringEnd(code)
-			if end > 0 {
-				tokens = append(tokens, Token{Type: TokenLiteral, Text: code[:end]})
-				code = code[end:]
-				continue
-			}
-		}
-
-		// Try to match a number
-		if match := h.pythonNumberRegex.FindString(code); match != "" {
-			tokens = append(tokens, Token{Type: TokenLiteral, Text: match})
-			code = code[len(match):]
-			continue
-		}
-
-		// Try to match an identifier or keyword
-		if match := h.pythonIdentifierRegex.FindString(code); match != "" {
-			if h.pythonKeywords[match] {
-				tokens = append(tokens, Token{Type: TokenKeyword, Text: match})
-			} else {
-				tokens = append(tokens, Token{Type: TokenIdentifier, Text: match})
-			}
-			code = code[len(match):]
-			continue
-		}
-
-		// If none of the above matched, it's an "other" token (operator, punctuation, etc.)
-		tokens = append(tokens, Token{Type: TokenOther, Text: string(code[0])})
-		code = code[1:]
+	for _, token := range parsingTokens {
+		tokens = append(tokens, Token{
+			Type: TokenType(token.Type), // TokenType enums match between packages
+			Text: token.Text,
+		})
 	}
 
 	return tokens
