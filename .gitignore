@@ -73,3 +73,4 @@ bld/*.exe
 # Scripts
 setvars.ps1
 publish.ps1
+go/aipipe-linux-arm64
