@@ -78,9 +78,9 @@ func runAIQuery(isCodeBlock, isStream, isPretty, isReasoning, isFast bool, argPr
 		IsCodeBlock:    isCodeBlock,
 		IsStream:       isStream,
 		ModelType:      model,
-		DefaultModel:   "llama-3.3-70b-versatile",
-		FastModel:      "llama-3.1-8b-instant",
-		ReasoningModel: "qwen-2.5-32b",
+		DefaultModel:   apiConfig.DefaultModel,
+		FastModel:      apiConfig.FastModel,
+		ReasoningModel: apiConfig.ReasoningModel,
 	}
 
 	client, err := llm.NewClient(config)
