@@ -178,3 +178,11 @@ func ParseTypeScript(code string) (TokenSequence, error) {
 
 	return tokens, nil
 }
+
+// TypeScriptParser implements the Parser interface for TypeScript/JavaScript code
+type TypeScriptParser struct{}
+
+// Parse parses TypeScript/JavaScript code and returns a sequence of tokens
+func (p *TypeScriptParser) Parse(code string) (TokenSequence, error) {
+	return ParseTypeScript(code)
+}

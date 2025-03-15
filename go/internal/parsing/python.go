@@ -51,6 +51,14 @@ var (
 	pythonWhitespaceRegex = regexp.MustCompile(`^[ \t\r\n]+`)
 )
 
+// PythonParser implements the Parser interface for Python code
+type PythonParser struct{}
+
+// Parse parses Python code and returns a sequence of tokens
+func (p *PythonParser) Parse(code string) (TokenSequence, error) {
+	return ParsePython(code)
+}
+
 // isPythonStringStart checks if the code starts with a string delimiter
 func isPythonStringStart(code string) bool {
 	return len(code) > 0 && (code[0] == '"' || code[0] == '\'')
