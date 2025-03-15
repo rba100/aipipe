@@ -138,10 +138,17 @@ func findStringEnd(code string) int {
 func (h *SyntaxHighlighter) parsePython(code string) []Token {
 	var tokens []Token
 
-	// Trim any BOM or other markers
-	code = strings.TrimSpace(code)
+	// Process the code without trimming whitespace
+	// This preserves indentation
 
 	for len(code) > 0 {
+		// Try to match whitespace first to preserve indentation
+		if match := h.pythonWhitespaceRegex.FindString(code); match != "" {
+			tokens = append(tokens, Token{Type: TokenWhitespace, Text: match})
+			code = code[len(match):]
+			continue
+		}
+
 		// Try to match a comment
 		if match := h.pythonCommentRegex.FindString(code); match != "" {
 			tokens = append(tokens, Token{Type: TokenComment, Text: match})
@@ -173,13 +180,6 @@ func (h *SyntaxHighlighter) parsePython(code string) []Token {
 			} else {
 				tokens = append(tokens, Token{Type: TokenIdentifier, Text: match})
 			}
-			code = code[len(match):]
-			continue
-		}
-
-		// Try to match whitespace
-		if match := h.pythonWhitespaceRegex.FindString(code); match != "" {
-			tokens = append(tokens, Token{Type: TokenWhitespace, Text: match})
 			code = code[len(match):]
 			continue
 		}

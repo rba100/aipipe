@@ -2,7 +2,6 @@ package parsing
 
 import (
 	"regexp"
-	"strings"
 )
 
 var (
@@ -82,10 +81,17 @@ func findPythonStringEnd(code string) int {
 func ParsePython(code string) (TokenSequence, error) {
 	var tokens TokenSequence
 
-	// Trim any BOM or other markers
-	code = strings.TrimSpace(code)
+	// Process the code without trimming whitespace
+	// This preserves indentation
 
 	for len(code) > 0 {
+		// Try to match whitespace first to preserve indentation
+		if match := pythonWhitespaceRegex.FindString(code); match != "" {
+			tokens = append(tokens, Token{Type: TokenWhitespace, Text: match})
+			code = code[len(match):]
+			continue
+		}
+
 		// Try to match a string literal
 		if isPythonStringStart(code) {
 			end := findPythonStringEnd(code)
@@ -117,13 +123,6 @@ func ParsePython(code string) (TokenSequence, error) {
 			} else {
 				tokens = append(tokens, Token{Type: TokenIdentifier, Text: match})
 			}
-			code = code[len(match):]
-			continue
-		}
-
-		// Try to match whitespace
-		if match := pythonWhitespaceRegex.FindString(code); match != "" {
-			tokens = append(tokens, Token{Type: TokenWhitespace, Text: match})
 			code = code[len(match):]
 			continue
 		}

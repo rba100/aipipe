@@ -2,7 +2,6 @@ package parsing
 
 import (
 	"regexp"
-	"strings"
 )
 
 var (
@@ -119,10 +118,17 @@ func findStringEnd(code string) int {
 func ParseTypeScript(code string) (TokenSequence, error) {
 	var tokens TokenSequence
 
-	// Trim any BOM or other markers
-	code = strings.TrimSpace(code)
+	// Process the code without trimming whitespace
+	// This preserves indentation
 
 	for len(code) > 0 {
+		// Try to match whitespace first to preserve indentation
+		if match := typescriptWhitespaceRegex.FindString(code); match != "" {
+			tokens = append(tokens, Token{Type: TokenWhitespace, Text: match})
+			code = code[len(match):]
+			continue
+		}
+
 		// Try to match a comment
 		if match := typescriptCommentRegex.FindString(code); match != "" {
 			tokens = append(tokens, Token{Type: TokenComment, Text: match})
@@ -161,13 +167,6 @@ func ParseTypeScript(code string) (TokenSequence, error) {
 			} else {
 				tokens = append(tokens, Token{Type: TokenIdentifier, Text: match})
 			}
-			code = code[len(match):]
-			continue
-		}
-
-		// Try to match whitespace
-		if match := typescriptWhitespaceRegex.FindString(code); match != "" {
-			tokens = append(tokens, Token{Type: TokenWhitespace, Text: match})
 			code = code[len(match):]
 			continue
 		}
