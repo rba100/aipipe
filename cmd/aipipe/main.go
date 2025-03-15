@@ -123,29 +123,46 @@ func runAIQuery(isCodeBlock, isStream, isPretty, isReasoning, isFast bool, argPr
 
 	// Process the prompt with the LLM
 	if isStream {
-		var stream <-chan string
 		if isCodeBlock {
-			stream = util.ExtractCodeBlockStream(client.CreateCompletionStream(prompt))
-		} else {
-			stream = client.CreateCompletionStream(prompt)
-		}
+			codeBlockStream := util.ExtractCodeBlockStream(client.CreateCompletionStream(prompt))
 
-		if isPretty {
-			printer := display.NewPrettyPrinter()
-			defer printer.Close()
+			if isPretty {
+				printer := display.NewPrettyPrinter()
+				defer printer.Close()
 
-			for part := range stream {
-				printer.Print(part)
+				for result := range codeBlockStream {
+					printer.Print(result.Text)
+				}
+
+				// Make sure to flush any remaining content before closing
+				printer.Flush()
+			} else {
+				for result := range codeBlockStream {
+					fmt.Print(result.Text)
+				}
+				// Add a newline if the last part doesn't end with one
+				fmt.Println()
 			}
-
-			// Make sure to flush any remaining content before closing
-			printer.Flush()
 		} else {
-			for part := range stream {
-				fmt.Print(part)
+			stream := client.CreateCompletionStream(prompt)
+
+			if isPretty {
+				printer := display.NewPrettyPrinter()
+				defer printer.Close()
+
+				for part := range stream {
+					printer.Print(part)
+				}
+
+				// Make sure to flush any remaining content before closing
+				printer.Flush()
+			} else {
+				for part := range stream {
+					fmt.Print(part)
+				}
+				// Add a newline if the last part doesn't end with one
+				fmt.Println()
 			}
-			// Add a newline if the last part doesn't end with one
-			fmt.Println()
 		}
 	} else {
 		var response string
@@ -157,16 +174,25 @@ func runAIQuery(isCodeBlock, isStream, isPretty, isReasoning, isFast bool, argPr
 		}
 
 		if isCodeBlock {
-			response = util.ExtractCodeBlock(response)
-		}
+			result := util.ExtractCodeBlock(response)
 
-		if isPretty {
-			printer := display.NewPrettyPrinter()
-			defer printer.Close()
-			printer.Print(response)
-			printer.Flush()
+			if isPretty {
+				printer := display.NewPrettyPrinter()
+				defer printer.Close()
+				printer.Print(result.Text)
+				printer.Flush()
+			} else {
+				fmt.Println(result.Text)
+			}
 		} else {
-			fmt.Println(response)
+			if isPretty {
+				printer := display.NewPrettyPrinter()
+				defer printer.Close()
+				printer.Print(response)
+				printer.Flush()
+			} else {
+				fmt.Println(response)
+			}
 		}
 	}
 

@@ -42,7 +42,7 @@ func TestGetAPIConfig(t *testing.T) {
 				APIEndpoint:    "https://test-aipipe-endpoint.com",
 				DefaultModel:   "llama-3.3-70b-versatile",
 				FastModel:      "llama-3.1-8b-instant",
-				ReasoningModel: "qwen-2.5-32b",
+				ReasoningModel: "qwen-qwq-32b",
 			},
 		},
 		{
@@ -59,7 +59,7 @@ func TestGetAPIConfig(t *testing.T) {
 				APIEndpoint:    "https://api.groq.com/openai/v1",
 				DefaultModel:   "llama-3.3-70b-versatile",
 				FastModel:      "llama-3.1-8b-instant",
-				ReasoningModel: "qwen-2.5-32b",
+				ReasoningModel: "qwen-qwq-32b",
 			},
 		},
 		{
