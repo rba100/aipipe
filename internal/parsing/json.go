@@ -54,7 +54,6 @@ func findJSONStringEnd(code string) int {
 // ParseJSON parses JSON code and returns a sequence of tokens
 func ParseJSON(code string) (TokenSequence, error) {
 	var tokens TokenSequence
-	expectingColon := false // Track if we're potentially parsing an object key
 
 	for len(code) > 0 {
 		// Try to match whitespace first to preserve formatting
@@ -70,7 +69,7 @@ func ParseJSON(code string) (TokenSequence, error) {
 			if end > 0 {
 				text := code[:end]
 				tokenType := TokenLiteral
-				
+
 				// If this string is followed by a colon (ignoring whitespace),
 				// it's an object key and should be treated as an identifier
 				remaining := code[end:]
@@ -84,7 +83,7 @@ func ParseJSON(code string) (TokenSequence, error) {
 					}
 					break
 				}
-				
+
 				tokens = append(tokens, Token{Type: tokenType, Text: text})
 				code = code[end:]
 				continue
