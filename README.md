@@ -41,92 +41,26 @@ The 'code block' flag `--cb` is best for when you want something specifically fo
 - `-s / --stream`: stream the output for faster perceived response
 - `-r / --reasoning`: use a reasoning model instead, for extra oomph.
 - `-f / --fast`: use a fast-but-thick model instead, for extra speed.
-- `-m / --mic`: microphone input for the instruction prompt (probably Windows only)
 
 ## Installation
 
-`dotnet publish aipipe.csproj -c Release -o bld --self-contained true -p:PublishSingleFile=true -p:PublishTrimmed=true -p:DebugType=None`
+build.ps1 (windows)
+build.sh  (!windows)
 
-copy the .\bld\aipipe(.exe) to your bin folder.
+copy the binary produced to your bin folder.
 
 Set env vars
 ```
 GROQ_API_KEY
+# OR
+OPENAI_API_KEY
 ```
 
-## AI Providers
+Groq is used in preference OpenAI if both api keys are defined, since this application is meant for speed.
 
-Supports https://groq.com/ using the OpenAI client interface with a custom base URL.
+However, you can override with any openai compatible provider:
 
-# LLM Client Implementation
-
-This project provides a Go implementation for interacting with LLM providers using the OpenAI client interface.
-
-## Structure
-
-- `go/internal/llm/openaiclient.go`: Contains the complete LLM client implementation
-- `go/internal/util/codeblocks.go`: Contains utilities for extracting code blocks from LLM responses
-- `go/cmd/main.go`: Example usage of the LLM client
-
-## Implementation Details
-
-The implementation uses the OpenAI client interface to interact with Groq's API by overriding the base URL. This approach allows us to use the same client for different LLM providers that support the OpenAI API format.
-
-Key features:
-- Configurable API endpoint and token
-- Support for different model types (fast, default, reasoning)
-- Streaming and non-streaming completions
-- Code block extraction utilities
-
-## Usage
-
-```go
-import (
-    "../internal/llm"
-    "../internal/util"
-)
-
-func main() {
-    // Create a configuration for using Groq with the OpenAI client
-    config := &llm.Config{
-        APIEndpoint:    "https://api.groq.com/v1", // Groq API endpoint
-        APIToken:       "your-api-key",
-        DefaultModel:   "llama3-70b-8192",         // Default Groq model
-        FastModel:      "gemma-7b-it",             // Fast Groq model
-        ReasoningModel: "mixtral-8x7b-32768",      // Reasoning Groq model
-        IsCodeBlock:    true,
-        IsStream:       false,
-        ModelType:      llm.ModelTypeDefault,
-    }
-
-    // Create a client
-    client, err := llm.NewClient(config)
-    if err != nil {
-        panic(err)
-    }
-
-    // Get a completion
-    response, err := client.CreateCompletion("Write a hello world program in Go")
-    if err != nil {
-        panic(err)
-    }
-
-    // Extract code block if needed
-    codeBlock := util.ExtractCodeBlock(response)
-    
-    // Or use streaming
-    if config.IsStream {
-        stream := client.CreateCompletionStream("Write a hello world program in Go")
-        for chunk := range stream {
-            // Process each chunk
-            fmt.Print(chunk)
-        }
-    }
-}
 ```
-
-## Notes
-
-- The implementation uses standard Go HTTP client to make API requests to Groq's API.
-- The client is designed to work with any API that follows the OpenAI API format.
-- The code block extraction utilities are provided to help extract code blocks from LLM responses.
+AIPIPE_API_KEY=xxx
+AIPIPE_ENDPOINT=https://some-provider.example.com/v1
+```

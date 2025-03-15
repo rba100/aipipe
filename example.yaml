@@ -1,9 +1,0 @@
-useOpenRouter: false
-groqDefaultModel: "llama-3.3-70b-versatile"
-groqFastModel: "llama-3.1-8b-instant"
-groqReasoningModel: "deepseek-r1-distill-llama-70b"
-
-
-openRouterDefaultModel: "google/gemini-2.0-flash-001"
-openRouterFastModel: "meta-llama/llama-3-8b-instruct"
-openRouterReasoningModel: "deepseek/deepseek-r1-distill-llama-70b:free"
