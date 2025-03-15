@@ -180,6 +180,9 @@ func runAIQuery(isCodeBlock, isStream, isPretty, isReasoning, isFast bool, argPr
 			if isPretty {
 				printer := display.NewPrettyPrinter()
 				defer printer.Close()
+				if result.Type != "" {
+					printer.SetCodeBlockState(result.Type)
+				}
 				printer.Print(result.Text)
 				printer.Flush()
 			} else {
