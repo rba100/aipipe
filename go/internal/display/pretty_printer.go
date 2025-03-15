@@ -63,7 +63,7 @@ func NewPrettyPrinter() *PrettyPrinter {
 	p.codeBlockEndRegex = regexp.MustCompile(`^\s*\x60\x60\x60\s*$`)
 	p.numberedListRegex = regexp.MustCompile(`^(\s*)(\d+\.)\s+(.*)$`)
 	p.unorderedListRegex = regexp.MustCompile(`^(\s*)([-*])\s+(.*)$`)
-	p.emphasisRegex = regexp.MustCompile(`(\*\*|__)([^*_]+)(\*\*|__)|(\*|_)([^*_]+)(\*|_)`)
+	p.emphasisRegex = regexp.MustCompile(`(\*\*\*|\*\*|__)([^*_]+)(\*\*\*|\*\*|__)|(\*|_)([^*_]+)(\*|_)`)
 	p.blockQuoteRegex = regexp.MustCompile(`^(\s*)((?:>\s*)+)(.*)$`)
 	p.horizontalRuleRegex = regexp.MustCompile(`^(\s*)([-*_])([-*_])([-*_])+\s*$`)
 

@@ -22,6 +22,8 @@ func main() {
 	prettyFlagShort := pflag.BoolP("p", "p", false, "Enable pretty printing with colors and formatting (shorthand)")
 	reasoningFlag := pflag.Bool("reasoning", false, "Use reasoning model")
 	reasoningFlagShort := pflag.BoolP("r", "r", false, "Use reasoning model (shorthand)")
+	fastFlag := pflag.Bool("fast", false, "Use fast model")
+	fastFlagShort := pflag.BoolP("f", "f", false, "Use fast model (shorthand)")
 
 	// Parse command line flags - pflag allows flags to be placed anywhere
 	pflag.Parse()
@@ -31,7 +33,7 @@ func main() {
 	isStream := *streamFlag || *streamFlagShort
 	isPretty := *prettyFlag || *prettyFlagShort
 	isReasoning := *reasoningFlag || *reasoningFlagShort
-
+	isFast := *fastFlag || *fastFlagShort
 	// Get prompt from command line arguments
 	var argPrompt string
 	if pflag.NArg() > 0 {
@@ -39,17 +41,20 @@ func main() {
 	}
 
 	// Run the AI query
-	err := runAIQuery(isCodeBlock, isStream, isPretty, isReasoning, argPrompt)
+	err := runAIQuery(isCodeBlock, isStream, isPretty, isReasoning, isFast, argPrompt)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 		os.Exit(1)
 	}
 }
 
-func runAIQuery(isCodeBlock, isStream, isPretty, isReasoning bool, argPrompt string) error {
+func runAIQuery(isCodeBlock, isStream, isPretty, isReasoning, isFast bool, argPrompt string) error {
 	// Check for mutually exclusive options
 	if isCodeBlock && isPretty {
 		return fmt.Errorf("the --cb and --pretty options cannot be used together")
+	}
+	if isReasoning && isFast {
+		return fmt.Errorf("the --reasoning and --fast options cannot be used together")
 	}
 
 	// Get API configuration from environment variables
@@ -61,6 +66,9 @@ func runAIQuery(isCodeBlock, isStream, isPretty, isReasoning bool, argPrompt str
 	model := llm.ModelTypeDefault
 	if isReasoning {
 		model = llm.ModelTypeReasoning
+	}
+	if isFast {
+		model = llm.ModelTypeFast
 	}
 
 	// Create LLM client
