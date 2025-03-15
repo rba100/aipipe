@@ -155,8 +155,8 @@ func InitializeColors() {
 
 	// If we have 256 color support, use more vibrant colors
 	if mode == Color256Mode || mode == TrueColorMode {
-		TokenKeywordColor = "\033[38;5;171m"    // Bright purple
-		TokenIdentifierColor = "\033[38;5;252m" // Light gray
+		TokenKeywordColor = "\033[38;5;140m"    // Softer purple
+		TokenIdentifierColor = "\033[38;5;215m" // Pale orange
 		TokenLiteralColor = "\033[38;5;114m"    // Light green
 		TokenCommentColor = "\033[38;5;245m"    // Medium gray
 		TokenOtherColor = "\033[38;5;81m"       // Light cyan
@@ -168,5 +168,11 @@ func InitializeColors() {
 		MdListMarkerColor = "\033[38;5;75m"           // Medium blue
 		MdEmphasisColor = "\033[38;5;222m"            // Light gold
 		MdNormalTextColor = "\033[38;5;252m"          // Light gray
+	}
+
+	// If we have true color support, use RGB colors for even better representation
+	if mode == TrueColorMode {
+		TokenKeywordColor = GetRGBColor(177, 156, 217, true)    // Softer purple in RGB
+		TokenIdentifierColor = GetRGBColor(255, 179, 128, true) // Pale orange in RGB
 	}
 }
