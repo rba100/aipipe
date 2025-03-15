@@ -8,6 +8,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"os"
 	"strings"
 )
 
@@ -182,9 +183,11 @@ func (c *OpenAIClient) CreateCompletion(prompt string) (string, error) {
 // CreateCompletionStream sends a prompt to the API and returns a stream of completions
 func (c *OpenAIClient) CreateCompletionStream(prompt string) <-chan string {
 	resultChan := make(chan string)
+	errorChan := make(chan error, 1) // Buffer of 1 to avoid blocking
 
 	go func() {
 		defer close(resultChan)
+		defer close(errorChan)
 
 		model := c.GetModel()
 
@@ -206,7 +209,7 @@ func (c *OpenAIClient) CreateCompletionStream(prompt string) <-chan string {
 
 		jsonBody, err := json.Marshal(requestBody)
 		if err != nil {
-			fmt.Fprintf(io.Discard, "error marshaling request: %v", err)
+			errorChan <- fmt.Errorf("error marshaling request: %v", err)
 			return
 		}
 
@@ -217,7 +220,7 @@ func (c *OpenAIClient) CreateCompletionStream(prompt string) <-chan string {
 		}
 		req, err := http.NewRequest("POST", endpoint+"chat/completions", bytes.NewBuffer(jsonBody))
 		if err != nil {
-			fmt.Fprintf(io.Discard, "error creating request: %v", err)
+			errorChan <- fmt.Errorf("error creating request: %v", err)
 			return
 		}
 
@@ -227,7 +230,7 @@ func (c *OpenAIClient) CreateCompletionStream(prompt string) <-chan string {
 		// Send the request
 		resp, err := c.httpClient.Do(req)
 		if err != nil {
-			fmt.Fprintf(io.Discard, "error sending request: %v", err)
+			errorChan <- fmt.Errorf("error sending request: %v", err)
 			return
 		}
 		defer resp.Body.Close()
@@ -235,7 +238,7 @@ func (c *OpenAIClient) CreateCompletionStream(prompt string) <-chan string {
 		// Check for errors
 		if resp.StatusCode != http.StatusOK {
 			bodyBytes, _ := io.ReadAll(resp.Body)
-			fmt.Fprintf(io.Discard, "API error (status %d): %s", resp.StatusCode, string(bodyBytes))
+			errorChan <- fmt.Errorf("API error (status %d): %s", resp.StatusCode, string(bodyBytes))
 			return
 		}
 
@@ -245,13 +248,13 @@ func (c *OpenAIClient) CreateCompletionStream(prompt string) <-chan string {
 			line, err := reader.ReadString('\n')
 			if err != nil {
 				if err != io.EOF {
-					fmt.Fprintf(io.Discard, "error reading stream: %v", err)
+					errorChan <- fmt.Errorf("error reading stream: %v", err)
 				}
 				break
 			}
 
 			line = strings.TrimSpace(line)
-			if line == "" || line == "data: [DONE]" {
+			if line == "" {
 				continue
 			}
 
@@ -259,11 +262,14 @@ func (c *OpenAIClient) CreateCompletionStream(prompt string) <-chan string {
 				continue
 			}
 
-			data := line[6:] // Remove "data: " prefix
+			data := strings.TrimPrefix(line, "data: ")
+			if data == "[DONE]" {
+				break
+			}
 
 			var streamResponse map[string]interface{}
 			if err := json.Unmarshal([]byte(data), &streamResponse); err != nil {
-				fmt.Fprintf(io.Discard, "error parsing stream data: %v", err)
+				errorChan <- fmt.Errorf("error parsing stream data: %v", err)
 				continue
 			}
 
@@ -288,6 +294,14 @@ func (c *OpenAIClient) CreateCompletionStream(prompt string) <-chan string {
 			}
 
 			resultChan <- content
+		}
+	}()
+
+	// Monitor the error channel and log errors
+	go func() {
+		for err := range errorChan {
+			// Log the error to stderr
+			fmt.Fprintf(os.Stderr, "Error in completion stream: %v\n", err)
 		}
 	}()
 

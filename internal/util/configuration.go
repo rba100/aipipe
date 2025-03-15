@@ -71,25 +71,20 @@ func LoadUserConfig(config *APIConfig) error {
 		}
 	}
 
-	// Note: We're extracting these model values but not using them yet
-	// You'll need to update the APIConfig struct to include these fields if needed
-
-	// The following code extracts the model information but doesn't store it
-	// since the current APIConfig struct doesn't have fields for these
-	if _, ok := normalizedMap["defaultmodel"]; ok {
-		if str, ok := normalizedMap["defaultmodel"].(string); ok {
+	if defaultModel, ok := normalizedMap["defaultmodel"]; ok && defaultModel != "" {
+		if str, ok := defaultModel.(string); ok {
 			config.DefaultModel = str
 		}
 	}
 
-	if _, ok := normalizedMap["fastmodel"]; ok {
-		if str, ok := normalizedMap["fastmodel"].(string); ok {
+	if fastModel, ok := normalizedMap["fastmodel"]; ok && fastModel != "" {
+		if str, ok := fastModel.(string); ok {
 			config.FastModel = str
 		}
 	}
 
-	if _, ok := normalizedMap["reasoningmodel"]; ok {
-		if str, ok := normalizedMap["reasoningmodel"].(string); ok {
+	if reasoningModel, ok := normalizedMap["reasoningmodel"]; ok && reasoningModel != "" {
+		if str, ok := reasoningModel.(string); ok {
 			config.ReasoningModel = str
 		}
 	}
@@ -113,12 +108,16 @@ func GetAPIConfig() (*APIConfig, error) {
 
 	if config.APIToken == "" {
 		config.APIToken = os.Getenv("GROQ_API_KEY")
-		isGroq = true
+		if config.APIToken != "" {
+			isGroq = true
+		}
 	}
 
 	if config.APIToken == "" {
 		config.APIToken = os.Getenv("OPENAI_API_KEY")
-		isOpenAI = true
+		if config.APIToken != "" {
+			isOpenAI = true
+		}
 	}
 
 	config.DefaultModel = "llama-3.3-70b-versatile"
