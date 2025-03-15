@@ -37,7 +37,7 @@ The 'code block' flag `--cb` is best for when you want something specifically fo
 ### Options
 
 - `-c / --cb`: outputs only the first code block emitted by the LLM, discarding all other output. Otherwise all output is emitted to std out.
-- `-p / --pretty`: use console colours to highlight markdown. Cannot use with --cb for now.
+- `-p / --pretty`: use console colours to highlight markdown.
 - `-s / --stream`: stream the output for faster perceived response.
 - `-r / --reasoning`: use a reasoning model instead, for extra oomph.
 - `-f / --fast`: use a fast-but-thick model instead, for extra speed.
