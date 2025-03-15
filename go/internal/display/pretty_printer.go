@@ -31,6 +31,8 @@ type PrettyPrinter struct {
 	emphasisRegex       *regexp.Regexp
 	blockQuoteRegex     *regexp.Regexp
 	horizontalRuleRegex *regexp.Regexp
+	syntaxHighlighter   *SyntaxHighlighter
+	currentLanguage     string
 }
 
 // ANSI color codes
@@ -66,6 +68,7 @@ func NewPrettyPrinter() *PrettyPrinter {
 	p.emphasisRegex = regexp.MustCompile(`(\*\*\*|\*\*|__)([^*_]+)(\*\*\*|\*\*|__)|(\*|_)([^*_]+)(\*|_)`)
 	p.blockQuoteRegex = regexp.MustCompile(`^(\s*)((?:>\s*)+)(.*)$`)
 	p.horizontalRuleRegex = regexp.MustCompile(`^(\s*)([-*_])([-*_])([-*_])+\s*$`)
+	p.syntaxHighlighter = NewSyntaxHighlighter()
 
 	return p
 }
@@ -136,6 +139,10 @@ func (p *PrettyPrinter) processLine(line string) {
 
 	if p.currentState == Normal {
 		if p.codeBlockStartRegex.MatchString(line) {
+			// Extract language from the code block start line
+			language := p.syntaxHighlighter.ExtractLanguage(line)
+			p.currentLanguage = language
+
 			fmt.Print(Cyan)
 			fmt.Print(line)
 			p.currentState = InCodeBlock
@@ -148,11 +155,19 @@ func (p *PrettyPrinter) processLine(line string) {
 			fmt.Print(Cyan)
 			fmt.Print(line)
 			p.currentState = Normal
+			p.currentLanguage = ""
 			return
 		}
 
-		fmt.Print(Cyan)
-		fmt.Print(line)
+		// Apply syntax highlighting if we have a language
+		if p.currentLanguage != "" {
+			highlightedLine := p.syntaxHighlighter.HighlightCode(line, p.currentLanguage)
+			fmt.Print(highlightedLine)
+		} else {
+			// Default to cyan for code blocks without a language
+			fmt.Print(Cyan)
+			fmt.Print(line)
+		}
 	}
 }
 
