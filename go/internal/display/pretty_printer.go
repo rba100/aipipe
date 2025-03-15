@@ -196,7 +196,7 @@ func (p *PrettyPrinter) printHeader(line string) {
 
 // printHorizontalRule prints a horizontal rule
 func (p *PrettyPrinter) printHorizontalRule(line string) {
-	fmt.Print(MdHorizontalColor)
+	fmt.Print(MdHeaderColor)
 	fmt.Print(line)
 	fmt.Print(ResetFormat)
 }

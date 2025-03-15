@@ -82,7 +82,6 @@ var (
 	MdBlockQuoteColor string
 	MdListMarkerColor string
 	MdEmphasisColor   string
-	MdHorizontalColor string
 	MdNormalTextColor string
 )
 
@@ -147,7 +146,6 @@ func InitializeColors() {
 	MdBlockQuoteColor = BlueFg
 	MdListMarkerColor = BlueFg
 	MdEmphasisColor = YellowFg + DimFormat
-	MdHorizontalColor = YellowFg
 	MdNormalTextColor = WhiteFg
 
 	// Windows Terminal has good color support even if TERM doesn't indicate it
@@ -169,7 +167,6 @@ func InitializeColors() {
 		MdBlockQuoteColor = "\033[38;5;75m"           // Medium blue
 		MdListMarkerColor = "\033[38;5;75m"           // Medium blue
 		MdEmphasisColor = "\033[38;5;222m"            // Light gold
-		MdHorizontalColor = "\033[38;5;220m"          // Gold
 		MdNormalTextColor = "\033[38;5;252m"          // Light gray
 	}
 }
