@@ -2,7 +2,6 @@ package main
 
 import (
 	"bufio"
-	"flag"
 	"fmt"
 	"os"
 	"strings"
@@ -10,19 +9,20 @@ import (
 	"github.com/rba100/aipipe/internal/display"
 	"github.com/rba100/aipipe/internal/llm"
 	"github.com/rba100/aipipe/internal/util"
+	"github.com/spf13/pflag"
 )
 
 func main() {
 	// Define command line flags
-	codeBlockFlag := flag.Bool("cb", false, "Extract code block from response")
-	codeBlockFlagShort := flag.Bool("c", false, "Extract code block from response (shorthand)")
-	streamFlag := flag.Bool("stream", false, "Stream completions from the AI model")
-	streamFlagShort := flag.Bool("s", false, "Stream completions from the AI model (shorthand)")
-	prettyFlag := flag.Bool("pretty", false, "Enable pretty printing with colors and formatting")
-	prettyFlagShort := flag.Bool("p", false, "Enable pretty printing with colors and formatting (shorthand)")
+	codeBlockFlag := pflag.Bool("cb", false, "Extract code block from response")
+	codeBlockFlagShort := pflag.BoolP("c", "c", false, "Extract code block from response (shorthand)")
+	streamFlag := pflag.Bool("stream", false, "Stream completions from the AI model")
+	streamFlagShort := pflag.BoolP("s", "s", false, "Stream completions from the AI model (shorthand)")
+	prettyFlag := pflag.Bool("pretty", false, "Enable pretty printing with colors and formatting")
+	prettyFlagShort := pflag.BoolP("p", "p", false, "Enable pretty printing with colors and formatting (shorthand)")
 
-	// Parse command line flags
-	flag.Parse()
+	// Parse command line flags - pflag allows flags to be placed anywhere
+	pflag.Parse()
 
 	// Combine short and long flags
 	isCodeBlock := *codeBlockFlag || *codeBlockFlagShort
@@ -31,8 +31,8 @@ func main() {
 
 	// Get prompt from command line arguments
 	var argPrompt string
-	if flag.NArg() > 0 {
-		argPrompt = strings.Join(flag.Args(), " ")
+	if pflag.NArg() > 0 {
+		argPrompt = strings.Join(pflag.Args(), " ")
 	}
 
 	// Run the AI query
