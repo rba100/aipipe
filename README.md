@@ -64,3 +64,17 @@ However, you can override with any openai compatible provider:
 AIPIPE_API_KEY=xxx
 AIPIPE_ENDPOINT=https://some-provider.example.com/v1
 ```
+
+as well as storing stuff in `~/.aipipe/config.yaml`
+
+```yaml
+apiKey: xxx
+endpoint: https://...
+defaultMode: gpt-5o
+reasoningModel: 6o-mini
+fastModel: llama-7.1-1b-nano
+```
+
+## Syntax highlighting
+
+`-p` mode will make markdown formatted output more colourful, as well as applying syntax highlighting to the contents of codeblocks.

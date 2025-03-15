@@ -1,0 +1,43 @@
+# Compiled object files
+*.a
+*.so
+*.dylib
+*.dll
+
+# Dependency directories
+# (assuming you're using Go modules and not dep, gb, etc..)
+# Comment this out if you want to explicitly commit your Go Modules
+# (otherwise, they're almost always better off committed to your repository.)
+# /vendor/
+
+# Test integration test files
+_itest.go$
+
+# Dependency directories
+pkg/
+
+# Test database dumps
+*.sqlite3
+
+# Editor directories
+*.swp
+*.swo
+*.sxi
+.editorconfig
+.editor/
+
+# Local config files
+config.local.yaml
+config.local.json
+
+# Visual Studio Code
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+
+# JetBrains IDEs
+*.iws
+*.iml
+*.ipr
