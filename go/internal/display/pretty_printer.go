@@ -35,13 +35,15 @@ type PrettyPrinter struct {
 
 // ANSI color codes
 const (
-	Reset  = "\033[0m"
-	Bold   = "\033[1m"
-	Green  = "\033[32m"
-	Yellow = "\033[33m"
-	Blue   = "\033[34m"
-	Cyan   = "\033[36m"
-	White  = "\033[37m"
+	Reset      = "\033[0m"
+	Bold       = "\033[1m"
+	Green      = "\033[32m"
+	Yellow     = "\033[33m"
+	Blue       = "\033[34m"
+	Cyan       = "\033[36m"
+	White      = "\033[37m"
+	Grey       = "\033[90m"
+	DarkYellow = "\033[33;2m"
 )
 
 // NewPrettyPrinter creates a new pretty printer
@@ -291,7 +293,7 @@ func (p *PrettyPrinter) printFormattedText(line string) {
 	for _, m := range allMatches {
 		// Print text before the match
 		if m.index > lastIndex {
-			fmt.Print(Green)
+			fmt.Print(White)
 			fmt.Print(line[lastIndex:m.index])
 		}
 
@@ -300,11 +302,11 @@ func (p *PrettyPrinter) printFormattedText(line string) {
 			fmt.Print(Cyan)
 			fmt.Print(line[m.index : m.index+m.length])
 		} else if m.typ == "emphasis" {
-			fmt.Print(White)
+			fmt.Print(DarkYellow)
 			if p.isBoldSupported {
 				fmt.Print(Bold)
 				fmt.Print(line[m.index : m.index+m.length])
-				fmt.Print(Reset + Green) // Reset bold but keep color
+				fmt.Print(Reset + White) // Reset bold but keep color
 			} else {
 				fmt.Print(line[m.index : m.index+m.length])
 			}
@@ -315,7 +317,7 @@ func (p *PrettyPrinter) printFormattedText(line string) {
 
 	// Print remaining text
 	if lastIndex < len(line) {
-		fmt.Print(Green)
+		fmt.Print(White)
 		fmt.Print(line[lastIndex:])
 	}
 
