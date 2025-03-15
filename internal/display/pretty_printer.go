@@ -157,6 +157,11 @@ func (p *PrettyPrinter) processLine(line string) {
 	}
 }
 
+func (p *PrettyPrinter) SetCodeBlockState(language string) {
+	p.currentLanguage = language
+	p.currentState = InCodeBlock
+}
+
 // processNormalLine processes a line in normal (non-code-block) state
 func (p *PrettyPrinter) processNormalLine(line string) {
 	if p.headerRegex.MatchString(line) {

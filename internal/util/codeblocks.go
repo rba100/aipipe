@@ -44,28 +44,73 @@ func ExtractCodeBlockStream(inputStream <-chan string) <-chan CodeBlockResult {
 	go func() {
 		defer close(outputStream)
 
-		// Collect all parts into a single string
-		completeBuffer := strings.Builder{}
+		buffer := strings.Builder{}
+		state := SearchingOpening
+		var blockType string = ""
+
 		for part := range inputStream {
-			completeBuffer.WriteString(part)
+			if state == Closed {
+				break
+			}
+
+			buffer.WriteString(part)
+			bufStr := buffer.String()
+
+			if state == SearchingOpening {
+				// Look for opening marker with optional language type
+				re := regexp.MustCompile("```([a-zA-Z0-9.]*)(?:\n)")
+				match := re.FindStringSubmatchIndex(bufStr)
+
+				if len(match) > 0 {
+					// Extract the language type if present
+					if match[2] != -1 && match[3] != -1 {
+						blockType = bufStr[match[2]:match[3]]
+					}
+
+					// Move to the content after the opening marker
+					remainingContent := bufStr[match[1]:]
+					buffer.Reset()
+					buffer.WriteString(remainingContent)
+					state = Open
+					continue
+				}
+			}
+
+			if state == Open {
+				// Check for potential closing marker at the end
+				potentialClosingRe := regexp.MustCompile("\n`{0,2}$")
+				if potentialClosingRe.MatchString(bufStr) {
+					continue
+				}
+
+				// Check for actual closing marker
+				closePos := strings.Index(bufStr, "\n```")
+				if closePos >= 0 {
+					output := bufStr[:closePos]
+					state = Closed
+					buffer.Reset()
+					outputStream <- CodeBlockResult{
+						Text: output,
+						Type: blockType,
+					}
+					break
+				}
+
+				// If we're still processing and have content, return it and clear buffer
+				output := bufStr
+				buffer.Reset()
+				outputStream <- CodeBlockResult{
+					Text: output,
+					Type: blockType,
+				}
+			}
 		}
 
-		// Use the same regex as ExtractCodeBlock
-		completeStr := completeBuffer.String()
-		re := regexp.MustCompile("```([a-zA-Z0-9.]*)(?:\n)?([\\s\\S]*?)(?:\n```|```)")
-		matches := re.FindStringSubmatch(completeStr)
-
-		if len(matches) > 2 {
-			// Found a code block, return the content and type
+		// If we never closed the code block but have content, return what we have
+		if state != Closed && buffer.Len() > 0 {
 			outputStream <- CodeBlockResult{
-				Text: matches[2],
-				Type: matches[1],
-			}
-		} else {
-			// No code block found, return the original string
-			outputStream <- CodeBlockResult{
-				Text: completeStr,
-				Type: "",
+				Text: buffer.String(),
+				Type: blockType,
 			}
 		}
 	}()

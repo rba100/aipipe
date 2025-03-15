@@ -50,9 +50,7 @@ func main() {
 
 func runAIQuery(isCodeBlock, isStream, isPretty, isReasoning, isFast bool, argPrompt string) error {
 	// Check for mutually exclusive options
-	if isCodeBlock && isPretty {
-		return fmt.Errorf("the --cb and --pretty options cannot be used together")
-	}
+
 	if isReasoning && isFast {
 		return fmt.Errorf("the --reasoning and --fast options cannot be used together")
 	}
@@ -131,6 +129,9 @@ func runAIQuery(isCodeBlock, isStream, isPretty, isReasoning, isFast bool, argPr
 				defer printer.Close()
 
 				for result := range codeBlockStream {
+					if result.Type != "" {
+						printer.SetCodeBlockState(result.Type)
+					}
 					printer.Print(result.Text)
 				}
 
