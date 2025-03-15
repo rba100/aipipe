@@ -46,12 +46,37 @@ var (
 	}
 
 	// Regular expressions for Python tokens
-	pythonStringRegex     = regexp.MustCompile(`^(["'])(?:\\.|[^\\])*?\1`)
 	pythonNumberRegex     = regexp.MustCompile(`^[0-9]+(\.[0-9]+)?([eE][+-]?[0-9]+)?`)
 	pythonIdentifierRegex = regexp.MustCompile(`^[a-zA-Z_][a-zA-Z0-9_]*`)
 	pythonCommentRegex    = regexp.MustCompile(`^#.*`)
 	pythonWhitespaceRegex = regexp.MustCompile(`^[ \t\r\n]+`)
 )
+
+// isPythonStringStart checks if the code starts with a string delimiter
+func isPythonStringStart(code string) bool {
+	return len(code) > 0 && (code[0] == '"' || code[0] == '\'')
+}
+
+// findPythonStringEnd finds the end of a string literal
+func findPythonStringEnd(code string) int {
+	if len(code) < 2 {
+		return -1
+	}
+
+	delimiter := code[0]
+	for i := 1; i < len(code); i++ {
+		if code[i] == '\\' && i+1 < len(code) {
+			// Skip escaped character
+			i++
+			continue
+		}
+		if code[i] == delimiter {
+			return i + 1
+		}
+	}
+
+	return -1
+}
 
 // ParsePython parses Python code and returns a sequence of tokens
 func ParsePython(code string) (TokenSequence, error) {
@@ -62,10 +87,13 @@ func ParsePython(code string) (TokenSequence, error) {
 
 	for len(code) > 0 {
 		// Try to match a string literal
-		if match := pythonStringRegex.FindString(code); match != "" {
-			tokens = append(tokens, Token{Type: TokenLiteral, Text: match})
-			code = code[len(match):]
-			continue
+		if isPythonStringStart(code) {
+			end := findPythonStringEnd(code)
+			if end > 0 {
+				tokens = append(tokens, Token{Type: TokenLiteral, Text: code[:end]})
+				code = code[end:]
+				continue
+			}
 		}
 
 		// Try to match a comment
