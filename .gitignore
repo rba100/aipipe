@@ -1,75 +1,47 @@
-# Build Folders
-[Bb]in/*
-[Oo]bj/*
-
-# Rider project files
-.idea/
-*.sln.iml
-
-# Visual Studio
-.vs/
-
-# User-specific files
-*.user
-*.suo
-*.userosscache
-*.sln.docstates
-
-# Auto-generated files
-*.log
-
-# MacOS
-.DS_Store
-
-# Windows
-[Tt]humbs.db
-[Ss]ettings/
-
-# Others
-*.lock
-*.pdb
-*.cache
-*.zip
-*.exe
+# Compiled object files
+*.a
+*.so
+*.dylib
 *.dll
-*.pdb
-*.mdb
-*.class
-*.war
-*.ear
-*.db
-*.log
+
+# Dependency directories
+# (assuming you're using Go modules and not dep, gb, etc..)
+# Comment this out if you want to explicitly commit your Go Modules
+# (otherwise, they're almost always better off committed to your repository.)
+# /vendor/
+
+# Test integration test files
+_itest.go$
+
+# Dependency directories
+pkg/
+
+# Test database dumps
+*.sqlite3
+
+# Editor directories
 *.swp
 *.swo
-*~
-.project
-.classpath
-.csettings
-.settings/
-.loadpath
-.recommenders
+*.sxi
+.editorconfig
+.editor/
 
-# Tooling
-_ReSharper*/
-*.[Rr]e[Ss]harper
-*.DotSettings.user
+# Local config files
+config.local.yaml
+config.local.json
 
-# Coverage
-*.coverage
-*.coveragexml
+# Visual Studio Code
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
 
-# NUnit
-*.VisualState.xml
-TestResult.xml
+# JetBrains IDEs
+*.iws
+*.iml
+*.ipr
 
-# Build Results
-*.build.csdef
-*.build.csx
-*.build.config
-
-# Exclude executable files
-bld/*.exe
-
-# Scripts
-setvars.ps1
-publish.ps1
+# exes
+*.exe
+aipipe-linux-arm64

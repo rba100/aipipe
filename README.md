@@ -41,21 +41,40 @@ The 'code block' flag `--cb` is best for when you want something specifically fo
 - `-s / --stream`: stream the output for faster perceived response
 - `-r / --reasoning`: use a reasoning model instead, for extra oomph.
 - `-f / --fast`: use a fast-but-thick model instead, for extra speed.
-- `-m / --mic`: microphone input for the instruction prompt (probably Windows only)
 
 ## Installation
 
-`dotnet publish aipipe.csproj -c Release -o bld --self-contained true -p:PublishSingleFile=true -p:PublishTrimmed=true -p:DebugType=None`
+build.ps1 (windows)
+build.sh  (!windows)
 
-copy the .\bld\aipipe(.exe) to your bin folder.
+copy the binary produced to your bin folder.
 
 Set env vars
 ```
 GROQ_API_KEY
+# OR
+OPENAI_API_KEY
 ```
 
-## AI Providers
+Groq is used in preference OpenAI if both api keys are defined, since this application is meant for speed.
 
-Supports https://groq.com/ and https://openrouter.ai/
+However, you can override with any openai compatible provider:
 
-To use OpenRouter, use the `--or` flag. If you want this the default you'll need a config file (work in progress).
+```
+AIPIPE_API_KEY=xxx
+AIPIPE_ENDPOINT=https://some-provider.example.com/v1
+```
+
+as well as storing stuff in `~/.aipipe/config.yaml`
+
+```yaml
+apiKey: xxx
+endpoint: https://...
+defaultMode: gpt-5o
+reasoningModel: 6o-mini
+fastModel: llama-7.1-1b-nano
+```
+
+## Syntax highlighting
+
+`-p` mode will make markdown formatted output more colourful, as well as applying syntax highlighting to the contents of codeblocks.
