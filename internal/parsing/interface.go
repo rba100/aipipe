@@ -15,6 +15,8 @@ func GetParser(language string) Parser {
 		return &TypeScriptParser{}
 	case "bash", "sh", "shell":
 		return &BashParser{}
+	case "json":
+		return &JSONParser{}
 	default:
 		return nil
 	}
