@@ -122,7 +122,7 @@ func GetAPIConfig() (*APIConfig, error) {
 
 	config.DefaultModel = "llama-3.3-70b-versatile"
 	config.FastModel = "llama-3.1-8b-instant"
-	config.ReasoningModel = "qwen-2.5-32b"
+	config.ReasoningModel = "qwen-qwq-32b"
 
 	if isOpenAI {
 		config.DefaultModel = "gpt-4o"
