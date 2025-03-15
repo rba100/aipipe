@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"regexp"
 	"strings"
+
+	"github.com/rba100/aipipe/internal/parsing"
 )
 
 // TokenType represents the type of a token
@@ -190,16 +192,41 @@ func (h *SyntaxHighlighter) parsePython(code string) []Token {
 	return tokens
 }
 
+// parseTypeScript parses TypeScript/JavaScript code and returns a sequence of tokens
+func (h *SyntaxHighlighter) parseTypeScript(code string) []Token {
+	// Use the parsing package's TypeScript parser
+	parsingTokens, err := parsing.ParseTypeScript(code)
+	if err != nil {
+		// If there's an error, return a single token with the original code
+		return []Token{{Type: TokenOther, Text: code}}
+	}
+
+	// Convert parsing.Token to display.Token
+	var tokens []Token
+	for _, token := range parsingTokens {
+		tokens = append(tokens, Token{
+			Type: TokenType(token.Type), // TokenType enums match between packages
+			Text: token.Text,
+		})
+	}
+
+	return tokens
+}
+
 // HighlightCode highlights code based on the language identifier
 func (h *SyntaxHighlighter) HighlightCode(code string, language string) string {
-	// Currently only Python is supported
-	if language != "python" && language != "py" {
+	var tokens []Token
+
+	// Select the appropriate parser based on the language
+	switch language {
+	case "python", "py":
+		tokens = h.parsePython(code)
+	case "typescript", "ts", "javascript", "js":
+		tokens = h.parseTypeScript(code)
+	default:
 		// For unsupported languages, just return the code as is
 		return code
 	}
-
-	// Parse the Python code
-	tokens := h.parsePython(code)
 
 	// Build the highlighted code
 	var highlighted strings.Builder
