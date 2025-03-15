@@ -56,6 +56,77 @@ GROQ_API_KEY
 
 ## AI Providers
 
-Supports https://groq.com/ and https://openrouter.ai/
+Supports https://groq.com/ using the OpenAI client interface with a custom base URL.
 
-To use OpenRouter, use the `--or` flag. If you want this the default you'll need a config file (work in progress).
+# LLM Client Implementation
+
+This project provides a Go implementation for interacting with LLM providers using the OpenAI client interface.
+
+## Structure
+
+- `go/internal/llm/openaiclient.go`: Contains the complete LLM client implementation
+- `go/internal/util/codeblocks.go`: Contains utilities for extracting code blocks from LLM responses
+- `go/cmd/main.go`: Example usage of the LLM client
+
+## Implementation Details
+
+The implementation uses the OpenAI client interface to interact with Groq's API by overriding the base URL. This approach allows us to use the same client for different LLM providers that support the OpenAI API format.
+
+Key features:
+- Configurable API endpoint and token
+- Support for different model types (fast, default, reasoning)
+- Streaming and non-streaming completions
+- Code block extraction utilities
+
+## Usage
+
+```go
+import (
+    "../internal/llm"
+    "../internal/util"
+)
+
+func main() {
+    // Create a configuration for using Groq with the OpenAI client
+    config := &llm.Config{
+        APIEndpoint:    "https://api.groq.com/v1", // Groq API endpoint
+        APIToken:       "your-api-key",
+        DefaultModel:   "llama3-70b-8192",         // Default Groq model
+        FastModel:      "gemma-7b-it",             // Fast Groq model
+        ReasoningModel: "mixtral-8x7b-32768",      // Reasoning Groq model
+        IsCodeBlock:    true,
+        IsStream:       false,
+        ModelType:      llm.ModelTypeDefault,
+    }
+
+    // Create a client
+    client, err := llm.NewClient(config)
+    if err != nil {
+        panic(err)
+    }
+
+    // Get a completion
+    response, err := client.CreateCompletion("Write a hello world program in Go")
+    if err != nil {
+        panic(err)
+    }
+
+    // Extract code block if needed
+    codeBlock := util.ExtractCodeBlock(response)
+    
+    // Or use streaming
+    if config.IsStream {
+        stream := client.CreateCompletionStream("Write a hello world program in Go")
+        for chunk := range stream {
+            // Process each chunk
+            fmt.Print(chunk)
+        }
+    }
+}
+```
+
+## Notes
+
+- The implementation uses standard Go HTTP client to make API requests to Groq's API.
+- The client is designed to work with any API that follows the OpenAI API format.
+- The code block extraction utilities are provided to help extract code blocks from LLM responses.
