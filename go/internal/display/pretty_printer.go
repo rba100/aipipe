@@ -2,9 +2,7 @@ package display
 
 import (
 	"fmt"
-	"os"
 	"regexp"
-	"runtime"
 	"strings"
 )
 
@@ -35,26 +33,14 @@ type PrettyPrinter struct {
 	currentLanguage     string
 }
 
-// ANSI color codes
-const (
-	Reset      = "\033[0m"
-	Bold       = "\033[1m"
-	Green      = "\033[32m"
-	Yellow     = "\033[33m"
-	Blue       = "\033[34m"
-	Cyan       = "\033[36m"
-	White      = "\033[37m"
-	Grey       = "\033[90m"
-	DarkYellow = "\033[33;2m"
-)
-
 // NewPrettyPrinter creates a new pretty printer
 func NewPrettyPrinter() *PrettyPrinter {
-	isBoldSupported := runtime.GOOS != "windows" || os.Getenv("WT_SESSION") != ""
+	// Initialize colors based on terminal capabilities
+	InitializeColors()
 
 	p := &PrettyPrinter{
 		originalColor:   0, // Not used in Go implementation
-		isBoldSupported: isBoldSupported,
+		isBoldSupported: IsBoldSupported(),
 		currentState:    Normal,
 		lineBuffer:      strings.Builder{},
 	}
@@ -75,7 +61,7 @@ func NewPrettyPrinter() *PrettyPrinter {
 
 // Close cleans up the pretty printer
 func (p *PrettyPrinter) Close() {
-	fmt.Print(Reset)
+	fmt.Print(ResetFormat)
 }
 
 // Flush prints any remaining content in the line buffer
@@ -143,7 +129,7 @@ func (p *PrettyPrinter) processLine(line string) {
 			language := p.syntaxHighlighter.ExtractLanguage(line)
 			p.currentLanguage = language
 
-			fmt.Print(Cyan)
+			fmt.Print(MdCodeBlockColor)
 			fmt.Print(line)
 			p.currentState = InCodeBlock
 			return
@@ -152,7 +138,7 @@ func (p *PrettyPrinter) processLine(line string) {
 		p.processNormalLine(line)
 	} else { // InCodeBlock
 		if p.codeBlockEndRegex.MatchString(line) {
-			fmt.Print(Cyan)
+			fmt.Print(MdCodeBlockColor)
 			fmt.Print(line)
 			p.currentState = Normal
 			p.currentLanguage = ""
@@ -165,7 +151,7 @@ func (p *PrettyPrinter) processLine(line string) {
 			fmt.Print(highlightedLine)
 		} else {
 			// Default to cyan for code blocks without a language
-			fmt.Print(Cyan)
+			fmt.Print(MdCodeBlockColor)
 			fmt.Print(line)
 		}
 	}
@@ -203,16 +189,16 @@ func (p *PrettyPrinter) processNormalLine(line string) {
 
 // printHeader prints a header line
 func (p *PrettyPrinter) printHeader(line string) {
-	fmt.Print(Bold + Yellow)
+	fmt.Print(MdHeaderColor)
 	fmt.Print(line)
-	fmt.Print(Reset)
+	fmt.Print(ResetFormat)
 }
 
 // printHorizontalRule prints a horizontal rule
 func (p *PrettyPrinter) printHorizontalRule(line string) {
-	fmt.Print(Yellow)
+	fmt.Print(MdHorizontalColor)
 	fmt.Print(line)
-	fmt.Print(Reset)
+	fmt.Print(ResetFormat)
 }
 
 // printBlockQuote prints a block quote
@@ -224,9 +210,9 @@ func (p *PrettyPrinter) printBlockQuote(line string) {
 		content := matches[3]
 
 		fmt.Print(indentation)
-		fmt.Print(Blue)
+		fmt.Print(MdBlockQuoteColor)
 		fmt.Print(quote)
-		fmt.Print(Reset)
+		fmt.Print(ResetFormat)
 		p.printFormattedText(content)
 	}
 }
@@ -240,9 +226,9 @@ func (p *PrettyPrinter) printNumberedList(line string) {
 		content := matches[3]
 
 		fmt.Print(indentation)
-		fmt.Print(Blue)
+		fmt.Print(MdListMarkerColor)
 		fmt.Print(number)
-		fmt.Print(Reset)
+		fmt.Print(ResetFormat)
 		fmt.Print(" ")
 		p.printFormattedText(content)
 	}
@@ -257,9 +243,9 @@ func (p *PrettyPrinter) printUnorderedList(line string) {
 		content := matches[3]
 
 		fmt.Print(indentation)
-		fmt.Print(Blue)
+		fmt.Print(MdListMarkerColor)
 		fmt.Print(bullet)
-		fmt.Print(Reset)
+		fmt.Print(ResetFormat)
 		fmt.Print(" ")
 		p.printFormattedText(content)
 	}
@@ -308,20 +294,20 @@ func (p *PrettyPrinter) printFormattedText(line string) {
 	for _, m := range allMatches {
 		// Print text before the match
 		if m.index > lastIndex {
-			fmt.Print(White)
+			fmt.Print(MdNormalTextColor)
 			fmt.Print(line[lastIndex:m.index])
 		}
 
 		// Print the match with appropriate formatting
 		if m.typ == "code" {
-			fmt.Print(Cyan)
+			fmt.Print(MdInlineCodeColor)
 			fmt.Print(line[m.index : m.index+m.length])
 		} else if m.typ == "emphasis" {
-			fmt.Print(DarkYellow)
+			fmt.Print(MdEmphasisColor)
 			if p.isBoldSupported {
-				fmt.Print(Bold)
+				fmt.Print(BoldFormat)
 				fmt.Print(line[m.index : m.index+m.length])
-				fmt.Print(Reset + White) // Reset bold but keep color
+				fmt.Print(ResetFormat + MdNormalTextColor) // Reset bold but keep color
 			} else {
 				fmt.Print(line[m.index : m.index+m.length])
 			}
@@ -332,9 +318,9 @@ func (p *PrettyPrinter) printFormattedText(line string) {
 
 	// Print remaining text
 	if lastIndex < len(line) {
-		fmt.Print(White)
+		fmt.Print(MdNormalTextColor)
 		fmt.Print(line[lastIndex:])
 	}
 
-	fmt.Print(Reset)
+	fmt.Print(ResetFormat)
 }

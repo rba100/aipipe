@@ -1,7 +1,6 @@
 package display
 
 import (
-	"fmt"
 	"regexp"
 	"strings"
 
@@ -35,13 +34,14 @@ type Token struct {
 }
 
 // ANSI color codes for syntax highlighting
-const (
-	KeywordColor    = "\033[35m" // Magenta for keywords
-	IdentifierColor = "\033[37m" // White for identifiers
-	LiteralColor    = "\033[32m" // Green for literals
-	CommentColor    = "\033[90m" // Grey for comments
-	OtherColor      = "\033[36m" // Cyan for other tokens
-)
+// These are now defined in colours.go
+// const (
+// 	KeywordColor    = "\033[35m" // Magenta for keywords
+// 	IdentifierColor = "\033[37m" // White for identifiers
+// 	LiteralColor    = "\033[32m" // Green for literals
+// 	CommentColor    = "\033[90m" // Grey for comments
+// 	OtherColor      = "\033[36m" // Cyan for other tokens
+// )
 
 // SyntaxHighlighter handles syntax highlighting for code blocks
 type SyntaxHighlighter struct {
@@ -233,17 +233,17 @@ func (h *SyntaxHighlighter) HighlightCode(code string, language string) string {
 	for _, token := range tokens {
 		switch token.Type {
 		case TokenKeyword:
-			highlighted.WriteString(KeywordColor + token.Text + Reset)
+			highlighted.WriteString(TokenKeywordColor + token.Text + ResetFormat)
 		case TokenIdentifier:
-			highlighted.WriteString(IdentifierColor + token.Text + Reset)
+			highlighted.WriteString(TokenIdentifierColor + token.Text + ResetFormat)
 		case TokenLiteral:
-			highlighted.WriteString(LiteralColor + token.Text + Reset)
+			highlighted.WriteString(TokenLiteralColor + token.Text + ResetFormat)
 		case TokenComment:
-			highlighted.WriteString(CommentColor + token.Text + Reset)
+			highlighted.WriteString(TokenCommentColor + token.Text + ResetFormat)
 		case TokenWhitespace:
 			highlighted.WriteString(token.Text)
 		default:
-			highlighted.WriteString(OtherColor + token.Text + Reset)
+			highlighted.WriteString(TokenOtherColor + token.Text + ResetFormat)
 		}
 	}
 
@@ -254,36 +254,14 @@ func (h *SyntaxHighlighter) HighlightCode(code string, language string) string {
 func (h *SyntaxHighlighter) ExtractLanguage(line string) string {
 	matches := h.languageRegex.FindStringSubmatch(line)
 	if len(matches) >= 2 {
-		return strings.ToLower(matches[1])
+		h.currentLanguage = strings.ToLower(matches[1])
+		return h.currentLanguage
 	}
 	return ""
 }
 
-// ProcessCodeLine processes a line of code with syntax highlighting
+// ProcessCodeLine processes a line of code for syntax highlighting
 func (h *SyntaxHighlighter) ProcessCodeLine(line string) {
-	// Check if this is a code block start line with a language identifier
-	if h.languageRegex.MatchString(line) {
-		h.currentLanguage = h.ExtractLanguage(line)
-		fmt.Print(Cyan)
-		fmt.Print(line)
-		return
-	}
-
-	// Check if this is a code block end line
-	if regexp.MustCompile(`^\s*\x60\x60\x60\s*$`).MatchString(line) {
-		h.currentLanguage = ""
-		fmt.Print(Cyan)
-		fmt.Print(line)
-		return
-	}
-
-	// This is a line of code within the code block
-	if h.currentLanguage != "" {
-		highlightedLine := h.HighlightCode(line, h.currentLanguage)
-		fmt.Print(highlightedLine)
-	} else {
-		// If we don't know the language, just print in cyan
-		fmt.Print(Cyan)
-		fmt.Print(line)
-	}
+	// This method is not used in the current implementation
+	// It's here for compatibility with potential future extensions
 }
