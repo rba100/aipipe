@@ -20,6 +20,8 @@ func main() {
 	streamFlagShort := pflag.BoolP("s", "s", false, "Stream completions from the AI model (shorthand)")
 	prettyFlag := pflag.Bool("pretty", false, "Enable pretty printing with colors and formatting")
 	prettyFlagShort := pflag.BoolP("p", "p", false, "Enable pretty printing with colors and formatting (shorthand)")
+	reasoningFlag := pflag.Bool("reasoning", false, "Use reasoning model")
+	reasoningFlagShort := pflag.BoolP("r", "r", false, "Use reasoning model (shorthand)")
 
 	// Parse command line flags - pflag allows flags to be placed anywhere
 	pflag.Parse()
@@ -28,6 +30,7 @@ func main() {
 	isCodeBlock := *codeBlockFlag || *codeBlockFlagShort
 	isStream := *streamFlag || *streamFlagShort
 	isPretty := *prettyFlag || *prettyFlagShort
+	isReasoning := *reasoningFlag || *reasoningFlagShort
 
 	// Get prompt from command line arguments
 	var argPrompt string
@@ -36,38 +39,40 @@ func main() {
 	}
 
 	// Run the AI query
-	err := runAIQuery(isCodeBlock, isStream, isPretty, argPrompt)
+	err := runAIQuery(isCodeBlock, isStream, isPretty, isReasoning, argPrompt)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 		os.Exit(1)
 	}
 }
 
-func runAIQuery(isCodeBlock, isStream, isPretty bool, argPrompt string) error {
+func runAIQuery(isCodeBlock, isStream, isPretty, isReasoning bool, argPrompt string) error {
 	// Check for mutually exclusive options
 	if isCodeBlock && isPretty {
 		return fmt.Errorf("the --cb and --pretty options cannot be used together")
 	}
 
+	// Get API configuration from environment variables
+	apiConfig, err := util.GetAPIConfig()
+	if err != nil {
+		return err
+	}
+
+	model := llm.ModelTypeDefault
+	if isReasoning {
+		model = llm.ModelTypeReasoning
+	}
+
 	// Create LLM client
-	groqToken := os.Getenv("GROQ_API_KEY")
-	if groqToken == "" {
-		return fmt.Errorf("GROQ_API_KEY environment variable is not set")
-	}
-
-	groqEndpoint := os.Getenv("GROQ_ENDPOINT")
-	if groqEndpoint == "" {
-		groqEndpoint = "https://api.groq.com/openai/v1"
-	}
-
 	config := &llm.Config{
-		APIEndpoint:  groqEndpoint,
-		APIToken:     groqToken,
-		IsCodeBlock:  isCodeBlock,
-		IsStream:     isStream,
-		ModelType:    llm.ModelTypeDefault,
-		DefaultModel: "llama-3.3-70b-versatile",
-		FastModel:    "llama-3.1-8b-instant",
+		APIEndpoint:    apiConfig.APIEndpoint,
+		APIToken:       apiConfig.APIToken,
+		IsCodeBlock:    isCodeBlock,
+		IsStream:       isStream,
+		ModelType:      model,
+		DefaultModel:   "llama-3.3-70b-versatile",
+		FastModel:      "llama-3.1-8b-instant",
+		ReasoningModel: "qwen-2.5-32b",
 	}
 
 	client, err := llm.NewClient(config)
