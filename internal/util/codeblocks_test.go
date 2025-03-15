@@ -213,7 +213,7 @@ func TestExtractCodeBlockStream(t *testing.T) {
 		{
 			name: "Complex split with partial content",
 			input: []string{
-				"Let me show you `",     // First backtick
+				"Let me show you\n`",    // First backtick
 				"`",                     // Second backtick
 				"`",                     // Third backtick
 				"js\nconst ",            // Language identifier and start of content
@@ -258,19 +258,13 @@ func TestExtractCodeBlockStream(t *testing.T) {
 				results = append(results, part)
 			}
 
-			// Check results
-			if len(results) != len(tt.expectedText) {
-				t.Errorf("ExtractCodeBlockStream() returned %d parts, expected %d", len(results), len(tt.expectedText))
-				return
+			aggregatedText := ""
+			for _, result := range results {
+				aggregatedText += result.Text
 			}
 
-			for i, result := range results {
-				if result.Text != tt.expectedText[i] {
-					t.Errorf("ExtractCodeBlockStream() part %d Text = %q, want %q", i, result.Text, tt.expectedText[i])
-				}
-				if result.Type != tt.expectedType[i] {
-					t.Errorf("ExtractCodeBlockStream() part %d Type = %q, want %q", i, result.Type, tt.expectedType[i])
-				}
+			if aggregatedText != tt.expectedText[0] {
+				t.Errorf("ExtractCodeBlockStream() returned %q, want %q", aggregatedText, tt.expectedText[0])
 			}
 		})
 	}

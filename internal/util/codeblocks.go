@@ -40,6 +40,8 @@ const (
 // ExtractCodeBlockStream extracts code blocks from a stream
 func ExtractCodeBlockStream(inputStream <-chan string) <-chan CodeBlockResult {
 	outputStream := make(chan CodeBlockResult)
+	openingRe := regexp.MustCompile("```([a-zA-Z0-9.]*)(?:\n)")
+	potentialClosingRe := regexp.MustCompile("\n`{0,2}$")
 
 	go func() {
 		defer close(outputStream)
@@ -58,8 +60,7 @@ func ExtractCodeBlockStream(inputStream <-chan string) <-chan CodeBlockResult {
 
 			if state == SearchingOpening {
 				// Look for opening marker with optional language type
-				re := regexp.MustCompile("```([a-zA-Z0-9.]*)(?:\n)")
-				match := re.FindStringSubmatchIndex(bufStr)
+				match := openingRe.FindStringSubmatchIndex(bufStr)
 
 				if len(match) > 0 {
 					// Extract the language type if present
@@ -78,14 +79,13 @@ func ExtractCodeBlockStream(inputStream <-chan string) <-chan CodeBlockResult {
 
 			if state == Open {
 				// Check for potential closing marker at the end
-				potentialClosingRe := regexp.MustCompile("\n`{0,2}$")
 				if potentialClosingRe.MatchString(bufStr) {
 					continue
 				}
 
 				// Check for actual closing marker
 				closePos := strings.Index(bufStr, "\n```")
-				if closePos >= 0 {
+				if closePos >= 0 || strings.HasPrefix(bufStr, "```") {
 					output := bufStr[:closePos]
 					state = Closed
 					buffer.Reset()
@@ -108,8 +108,14 @@ func ExtractCodeBlockStream(inputStream <-chan string) <-chan CodeBlockResult {
 
 		// If we never closed the code block but have content, return what we have
 		if state != Closed && buffer.Len() > 0 {
+			remainingContent := buffer.String()
+
+			if strings.HasPrefix(remainingContent, "```") {
+				return
+			}
+
 			outputStream <- CodeBlockResult{
-				Text: buffer.String(),
+				Text: remainingContent,
 				Type: blockType,
 			}
 		}
