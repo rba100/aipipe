@@ -15,16 +15,10 @@ const (
 )
 
 func StripThinkTags(input string) string {
-	openingIndex := strings.Index(input, "<think>")
-	if openingIndex == -1 {
-		return input
-	}
-	closingIndex := strings.Index(input, "</think>")
-	if closingIndex == -1 {
-		return input
-	}
-	remainingText := input[closingIndex+len("</think>"):]
-	return remainingText
+	// Use (?s) to make dot match newlines, and use non-greedy matching with .*?
+	thinkRegex := regexp.MustCompile(`(?s)^\s*<think>.*?</think>\s*`)
+	result := thinkRegex.ReplaceAllString(input, "")
+	return result
 }
 
 // StripThinkTagsStream processes a stream of text and strips think tags
