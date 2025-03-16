@@ -31,6 +31,7 @@ func StripThinkTags(input string) string {
 func StripThinkTagsStream(inputStream <-chan string) <-chan string {
 	startingRegex := regexp.MustCompile(`^[\s]*<think>`)
 	outputStream := make(chan string)
+	firstEmit := true
 
 	go func() {
 		defer close(outputStream)
@@ -41,7 +42,15 @@ func StripThinkTagsStream(inputStream <-chan string) <-chan string {
 		for chunk := range inputStream {
 
 			if state == Emitting {
-				outputStream <- chunk
+				if firstEmit {
+					chunk = strings.TrimLeft(chunk, " \n\t")
+					if len(chunk) > 0 {
+						outputStream <- chunk
+						firstEmit = false
+					}
+				} else {
+					outputStream <- chunk
+				}
 				continue
 			}
 
@@ -59,14 +68,17 @@ func StripThinkTagsStream(inputStream <-chan string) <-chan string {
 					if closingIndex != -1 {
 						state = Emitting
 						remainingText := currentBuffer[closingIndex+len("</think>"):]
+						remainingText = strings.TrimLeft(remainingText, " \n\t")
 						if len(remainingText) > 0 {
 							outputStream <- remainingText
+							firstEmit = false
 						}
 					}
 					continue
 				}
 				state = Emitting
 				outputStream <- currentBuffer
+				firstEmit = false
 				continue
 
 			case Thinking:
@@ -74,8 +86,10 @@ func StripThinkTagsStream(inputStream <-chan string) <-chan string {
 				if closingIndex != -1 {
 					state = Emitting
 					remainingText := currentBuffer[closingIndex+len("</think>"):]
+					remainingText = strings.TrimLeft(remainingText, " \n\t")
 					if len(remainingText) > 0 {
 						outputStream <- remainingText
+						firstEmit = false
 					}
 					continue
 				}

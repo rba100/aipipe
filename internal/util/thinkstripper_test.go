@@ -123,7 +123,7 @@ func TestStripThinkTagsStream_emission_order(t *testing.T) {
 		select {
 		case output2 := <-resultStream:
 			if output2 != " My name is John Doe" {
-				t.Errorf("expected  My name is John Doe., got %q", output2)
+				t.Errorf("expected ' My name is John Doe'., got %q", output2)
 			}
 		case <-time.After(500 * time.Millisecond):
 			t.Fatal("timeout waiting for output2")

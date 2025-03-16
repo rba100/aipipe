@@ -24,6 +24,7 @@ func main() {
 	reasoningFlagShort := pflag.BoolP("r", "r", false, "Use reasoning model (shorthand)")
 	fastFlag := pflag.Bool("fast", false, "Use fast model")
 	fastFlagShort := pflag.BoolP("f", "f", false, "Use fast model (shorthand)")
+	thinkingFlag := pflag.Bool("thinking", false, "Show thinking process")
 
 	// Parse command line flags - pflag allows flags to be placed anywhere
 	pflag.Parse()
@@ -34,6 +35,7 @@ func main() {
 	isPretty := *prettyFlag || *prettyFlagShort
 	isReasoning := *reasoningFlag || *reasoningFlagShort
 	isFast := *fastFlag || *fastFlagShort
+	showThinking := *thinkingFlag
 	// Get prompt from command line arguments
 	var argPrompt string
 	if pflag.NArg() > 0 {
@@ -41,14 +43,14 @@ func main() {
 	}
 
 	// Run the AI query
-	err := runAIQuery(isCodeBlock, isStream, isPretty, isReasoning, isFast, argPrompt)
+	err := runAIQuery(isCodeBlock, isStream, isPretty, isReasoning, isFast, showThinking, argPrompt)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 		os.Exit(1)
 	}
 }
 
-func runAIQuery(isCodeBlock, isStream, isPretty, isReasoning, isFast bool, argPrompt string) error {
+func runAIQuery(isCodeBlock, isStream, isPretty, isReasoning, isFast, showThinking bool, argPrompt string) error {
 	// Check for mutually exclusive options
 
 	if isReasoning && isFast {
@@ -121,8 +123,10 @@ func runAIQuery(isCodeBlock, isStream, isPretty, isReasoning, isFast bool, argPr
 
 	// Process the prompt with the LLM
 	if isStream {
-		sourceStream := client.CreateCompletionStream(prompt)
-		stream := util.StripThinkTagsStream(sourceStream)
+		stream := client.CreateCompletionStream(prompt)
+		if !showThinking {
+			stream = util.StripThinkTagsStream(stream)
+		}
 		if isCodeBlock {
 			codeBlockStream := util.ExtractCodeBlockStream(stream)
 
@@ -174,7 +178,9 @@ func runAIQuery(isCodeBlock, isStream, isPretty, isReasoning, isFast bool, argPr
 			return err
 		}
 
-		response = util.StripThinkTags(response)
+		if !showThinking {
+			response = util.StripThinkTags(response)
+		}
 
 		if isCodeBlock {
 			result := util.ExtractCodeBlock(response)
