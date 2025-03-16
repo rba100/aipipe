@@ -1,6 +1,9 @@
 package util
 
-import "strings"
+import (
+	"regexp"
+	"strings"
+)
 
 // ThinkTagState represents the current state of the think tag processor
 type ThinkTagState int
@@ -11,8 +14,22 @@ const (
 	Emitting
 )
 
+func StripThinkTags(input string) string {
+	openingIndex := strings.Index(input, "<think>")
+	if openingIndex == -1 {
+		return input
+	}
+	closingIndex := strings.Index(input, "</think>")
+	if closingIndex == -1 {
+		return input
+	}
+	remainingText := input[closingIndex+len("</think>"):]
+	return remainingText
+}
+
 // StripThinkTagsStream processes a stream of text and strips think tags
 func StripThinkTagsStream(inputStream <-chan string) <-chan string {
+	startingRegex := regexp.MustCompile(`^[\s]*<think>`)
 	outputStream := make(chan string)
 
 	go func() {
@@ -33,10 +50,10 @@ func StripThinkTagsStream(inputStream <-chan string) <-chan string {
 
 			switch state {
 			case Searching:
-				if buffer.Len() < 7 {
+				if buffer.Len() < 10 {
 					continue
 				}
-				if strings.HasPrefix(currentBuffer, "<think>") {
+				if startingRegex.MatchString(currentBuffer) {
 					state = Thinking
 					closingIndex := strings.Index(currentBuffer, "</think>")
 					if closingIndex != -1 {

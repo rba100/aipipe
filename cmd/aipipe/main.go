@@ -121,8 +121,10 @@ func runAIQuery(isCodeBlock, isStream, isPretty, isReasoning, isFast bool, argPr
 
 	// Process the prompt with the LLM
 	if isStream {
+		sourceStream := client.CreateCompletionStream(prompt)
+		stream := util.StripThinkTagsStream(sourceStream)
 		if isCodeBlock {
-			codeBlockStream := util.ExtractCodeBlockStream(client.CreateCompletionStream(prompt))
+			codeBlockStream := util.ExtractCodeBlockStream(stream)
 
 			if isPretty {
 				printer := display.NewPrettyPrinter()
@@ -145,8 +147,6 @@ func runAIQuery(isCodeBlock, isStream, isPretty, isReasoning, isFast bool, argPr
 				fmt.Println()
 			}
 		} else {
-			stream := client.CreateCompletionStream(prompt)
-
 			if isPretty {
 				printer := display.NewPrettyPrinter()
 				defer printer.Close()
@@ -173,6 +173,8 @@ func runAIQuery(isCodeBlock, isStream, isPretty, isReasoning, isFast bool, argPr
 		if err != nil {
 			return err
 		}
+
+		response = util.StripThinkTags(response)
 
 		if isCodeBlock {
 			result := util.ExtractCodeBlock(response)
