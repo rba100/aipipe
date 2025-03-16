@@ -14,27 +14,22 @@ import (
 
 func main() {
 	// Define command line flags
-	codeBlockFlag := pflag.Bool("cb", false, "Extract code block from response")
-	codeBlockFlagShort := pflag.BoolP("c", "c", false, "Extract code block from response (shorthand)")
-	streamFlag := pflag.Bool("stream", false, "Stream completions from the AI model")
-	streamFlagShort := pflag.BoolP("s", "s", false, "Stream completions from the AI model (shorthand)")
-	prettyFlag := pflag.Bool("pretty", false, "Enable pretty printing with colors and formatting")
-	prettyFlagShort := pflag.BoolP("p", "p", false, "Enable pretty printing with colors and formatting (shorthand)")
-	reasoningFlag := pflag.Bool("reasoning", false, "Use reasoning model")
-	reasoningFlagShort := pflag.BoolP("r", "r", false, "Use reasoning model (shorthand)")
-	fastFlag := pflag.Bool("fast", false, "Use fast model")
-	fastFlagShort := pflag.BoolP("f", "f", false, "Use fast model (shorthand)")
-	thinkingFlag := pflag.Bool("thinking", false, "Show thinking process")
+	codeBlockFlag := pflag.BoolP("codeblock", "c", false, "Extract code block from response")
+	streamFlag := pflag.BoolP("stream", "s", false, "Stream completions from the AI model")
+	prettyFlag := pflag.BoolP("pretty", "p", false, "Enable pretty printing with colors and formatting")
+	reasoningFlag := pflag.BoolP("reasoning", "r", false, "Use reasoning model")
+	fastFlag := pflag.BoolP("fast", "f", false, "Use fast model")
+	thinkingFlag := pflag.BoolP("thinking", "t", false, "Show thinking process")
 
 	// Parse command line flags - pflag allows flags to be placed anywhere
 	pflag.Parse()
 
 	// Combine short and long flags
-	isCodeBlock := *codeBlockFlag || *codeBlockFlagShort
-	isStream := *streamFlag || *streamFlagShort
-	isPretty := *prettyFlag || *prettyFlagShort
-	isReasoning := *reasoningFlag || *reasoningFlagShort
-	isFast := *fastFlag || *fastFlagShort
+	isCodeBlock := *codeBlockFlag
+	isStream := *streamFlag
+	isPretty := *prettyFlag
+	isReasoning := *reasoningFlag
+	isFast := *fastFlag
 	showThinking := *thinkingFlag
 	// Get prompt from command line arguments
 	var argPrompt string
