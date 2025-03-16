@@ -70,7 +70,7 @@ as well as storing stuff in `~/.aipipe/config.yaml`
 
 ```yaml
 apiKey: xxx
-endpoint: https://...
+endpoint: https://openrouter.ai/api/v1
 defaultMode: gpt-5o
 reasoningModel: 6o-mini
 fastModel: llama-7.1-1b-nano
