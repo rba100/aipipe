@@ -17,6 +17,8 @@ func GetParser(language string) Parser {
 		return &BashParser{}
 	case "json":
 		return &JSONParser{}
+	case "csharp", "cs", "c#":
+		return &CsharpParser{}
 	default:
 		return nil
 	}
