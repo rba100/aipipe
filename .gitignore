@@ -45,3 +45,5 @@ config.local.json
 # exes
 *.exe
 aipipe-linux-arm64
+aipipe
+test_syntax_highlight
