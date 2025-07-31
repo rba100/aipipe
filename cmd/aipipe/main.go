@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/rba100/aipipe/internal/display"
+	"github.com/rba100/aipipe/internal/history"
 	"github.com/rba100/aipipe/internal/llm"
 	"github.com/rba100/aipipe/internal/util"
 	"github.com/spf13/pflag"
@@ -20,6 +21,7 @@ func main() {
 	reasoningFlag := pflag.BoolP("reasoning", "r", false, "Use reasoning model")
 	fastFlag := pflag.BoolP("fast", "f", false, "Use fast model")
 	thinkingFlag := pflag.BoolP("thinking", "t", false, "Show thinking process")
+	followUpFlag := pflag.BoolP("follow-up", "u", false, "Follow up on the last conversation")
 
 	// Parse command line flags - pflag allows flags to be placed anywhere
 	pflag.Parse()
@@ -31,6 +33,7 @@ func main() {
 	isReasoning := *reasoningFlag
 	isFast := *fastFlag
 	showThinking := *thinkingFlag
+	isFollowUp := *followUpFlag
 	// Get prompt from command line arguments
 	var argPrompt string
 	if pflag.NArg() > 0 {
@@ -38,14 +41,14 @@ func main() {
 	}
 
 	// Run the AI query
-	err := runAIQuery(isCodeBlock, isStream, isPretty, isReasoning, isFast, showThinking, argPrompt)
+	err := runAIQuery(isCodeBlock, isStream, isPretty, isReasoning, isFast, showThinking, isFollowUp, argPrompt)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 		os.Exit(1)
 	}
 }
 
-func runAIQuery(isCodeBlock, isStream, isPretty, isReasoning, isFast, showThinking bool, argPrompt string) error {
+func runAIQuery(isCodeBlock, isStream, isPretty, isReasoning, isFast, showThinking, isFollowUp bool, argPrompt string) error {
 	// Check for mutually exclusive options
 
 	if isReasoning && isFast {
@@ -83,6 +86,23 @@ func runAIQuery(isCodeBlock, isStream, isPretty, isReasoning, isFast, showThinki
 		return err
 	}
 
+	// Handle conversation history
+	paths, err := history.GetPaths()
+	if err != nil {
+		return err
+	}
+
+	if !isFollowUp {
+		if err := history.ArchiveLastConversation(); err != nil {
+			return err
+		}
+	}
+
+	conversation, err := history.ReadConversation(paths.LastConvFile)
+	if err != nil {
+		return err
+	}
+
 	// Build prompt from stdin and/or command line argument
 	promptBuilder := strings.Builder{}
 
@@ -104,7 +124,7 @@ func runAIQuery(isCodeBlock, isStream, isPretty, isReasoning, isFast, showThinki
 	// Add command line argument if provided
 	if argPrompt != "" {
 		if promptBuilder.Len() > 0 {
-			promptBuilder.WriteString("-----\n")
+			promptBuilder.WriteString("\n")
 		}
 		promptBuilder.WriteString(argPrompt)
 	}
@@ -115,15 +135,18 @@ func runAIQuery(isCodeBlock, isStream, isPretty, isReasoning, isFast, showThinki
 	}
 
 	prompt := promptBuilder.String()
+	conversation.Messages = append(conversation.Messages, history.Message{Role: "user", Content: prompt})
 
 	// Process the prompt with the LLM
 	if isStream {
-		stream := client.CreateCompletionStream(prompt)
+		responseStream := client.CreateCompletionStream(conversation.Messages)
 		if !showThinking {
-			stream = util.StripThinkTagsStream(stream)
+			responseStream = util.StripThinkTagsStream(responseStream)
 		}
+
+		var responseBuilder strings.Builder
 		if isCodeBlock {
-			codeBlockStream := util.ExtractCodeBlockStream(stream)
+			codeBlockStream := util.ExtractCodeBlockStream(responseStream)
 
 			if isPretty {
 				printer := display.NewPrettyPrinter()
@@ -134,15 +157,14 @@ func runAIQuery(isCodeBlock, isStream, isPretty, isReasoning, isFast, showThinki
 						printer.SetCodeBlockState(result.Type)
 					}
 					printer.Print(result.Text)
+					responseBuilder.WriteString(result.Text)
 				}
-
-				// Make sure to flush any remaining content before closing
 				printer.Flush()
 			} else {
 				for result := range codeBlockStream {
 					fmt.Print(result.Text)
+					responseBuilder.WriteString(result.Text)
 				}
-				// Add a newline if the last part doesn't end with one
 				fmt.Println()
 			}
 		} else {
@@ -150,25 +172,22 @@ func runAIQuery(isCodeBlock, isStream, isPretty, isReasoning, isFast, showThinki
 				printer := display.NewPrettyPrinter()
 				defer printer.Close()
 
-				for part := range stream {
+				for part := range responseStream {
 					printer.Print(part)
+					responseBuilder.WriteString(part)
 				}
-
-				// Make sure to flush any remaining content before closing
 				printer.Flush()
 			} else {
-				for part := range stream {
+				for part := range responseStream {
 					fmt.Print(part)
+					responseBuilder.WriteString(part)
 				}
-				// Add a newline if the last part doesn't end with one
 				fmt.Println()
 			}
 		}
+		conversation.Messages = append(conversation.Messages, history.Message{Role: "assistant", Content: responseBuilder.String()})
 	} else {
-		var response string
-		var err error
-
-		response, err = client.CreateCompletion(prompt)
+		response, err := client.CreateCompletion(conversation.Messages)
 		if err != nil {
 			return err
 		}
@@ -179,7 +198,6 @@ func runAIQuery(isCodeBlock, isStream, isPretty, isReasoning, isFast, showThinki
 
 		if isCodeBlock {
 			result := util.ExtractCodeBlock(response)
-
 			if isPretty {
 				printer := display.NewPrettyPrinter()
 				defer printer.Close()
@@ -191,6 +209,7 @@ func runAIQuery(isCodeBlock, isStream, isPretty, isReasoning, isFast, showThinki
 			} else {
 				fmt.Println(result.Text)
 			}
+			conversation.Messages = append(conversation.Messages, history.Message{Role: "assistant", Content: result.Text})
 		} else {
 			if isPretty {
 				printer := display.NewPrettyPrinter()
@@ -200,7 +219,13 @@ func runAIQuery(isCodeBlock, isStream, isPretty, isReasoning, isFast, showThinki
 			} else {
 				fmt.Println(response)
 			}
+			conversation.Messages = append(conversation.Messages, history.Message{Role: "assistant", Content: response})
 		}
+	}
+
+	// Save the conversation
+	if err := history.WriteConversation(paths.LastConvFile, conversation); err != nil {
+		return fmt.Errorf("failed to save conversation: %w", err)
 	}
 
 	return nil

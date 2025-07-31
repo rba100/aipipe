@@ -10,6 +10,8 @@ import (
 	"net/url"
 	"os"
 	"strings"
+
+	"github.com/rba100/aipipe/internal/history"
 )
 
 // ModelType represents the type of model to use
@@ -40,8 +42,8 @@ type Config struct {
 
 // LLMClient is the interface for interacting with LLM providers
 type LLMClient interface {
-	CreateCompletion(prompt string) (string, error)
-	CreateCompletionStream(prompt string) <-chan string
+	CreateCompletion(messages []history.Message) (string, error)
+	CreateCompletionStream(messages []history.Message) <-chan string
 }
 
 // OpenAIClient implements the LLMClient interface for OpenAI/Groq
@@ -101,22 +103,19 @@ func GetSystemPrompt(isCodeBlock bool) string {
 }
 
 // CreateCompletion sends a prompt to the API and returns the completion
-func (c *OpenAIClient) CreateCompletion(prompt string) (string, error) {
+func (c *OpenAIClient) CreateCompletion(messages []history.Message) (string, error) {
 	model := c.GetModel()
 
 	// Prepare the request body
+	systemPrompt := history.Message{
+		Role:    "system",
+		Content: GetSystemPrompt(c.config.IsCodeBlock),
+	}
+	allMessages := append([]history.Message{systemPrompt}, messages...)
+
 	requestBody := map[string]interface{}{
-		"model": model,
-		"messages": []map[string]string{
-			{
-				"role":    "system",
-				"content": GetSystemPrompt(c.config.IsCodeBlock),
-			},
-			{
-				"role":    "user",
-				"content": prompt,
-			},
-		},
+		"model":    model,
+		"messages": allMessages,
 	}
 
 	jsonBody, err := json.Marshal(requestBody)
@@ -181,7 +180,7 @@ func (c *OpenAIClient) CreateCompletion(prompt string) (string, error) {
 }
 
 // CreateCompletionStream sends a prompt to the API and returns a stream of completions
-func (c *OpenAIClient) CreateCompletionStream(prompt string) <-chan string {
+func (c *OpenAIClient) CreateCompletionStream(messages []history.Message) <-chan string {
 	resultChan := make(chan string)
 	errorChan := make(chan error, 1) // Buffer of 1 to avoid blocking
 
@@ -192,19 +191,16 @@ func (c *OpenAIClient) CreateCompletionStream(prompt string) <-chan string {
 		model := c.GetModel()
 
 		// Prepare the request body
+		systemPrompt := history.Message{
+			Role:    "system",
+			Content: GetSystemPrompt(c.config.IsCodeBlock),
+		}
+		allMessages := append([]history.Message{systemPrompt}, messages...)
+
 		requestBody := map[string]interface{}{
-			"model": model,
-			"messages": []map[string]string{
-				{
-					"role":    "system",
-					"content": GetSystemPrompt(c.config.IsCodeBlock),
-				},
-				{
-					"role":    "user",
-					"content": prompt,
-				},
-			},
-			"stream": true,
+			"model":    model,
+			"messages": allMessages,
+			"stream":   true,
 		}
 
 		jsonBody, err := json.Marshal(requestBody)
