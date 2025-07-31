@@ -18,6 +18,7 @@ const (
 type PrettyPrinter struct {
 	originalColor       int
 	isBoldSupported     bool
+	reformattedMarkdown bool
 	lineBuffer          strings.Builder
 	currentState        PrintState
 	headerRegex         *regexp.Regexp
@@ -55,6 +56,7 @@ func NewPrettyPrinter() *PrettyPrinter {
 	p.blockQuoteRegex = regexp.MustCompile(`^(\s*)((?:>\s*)+)(.*)$`)
 	p.horizontalRuleRegex = regexp.MustCompile(`^(\s*)([-*_])([-*_])([-*_])+\s*$`)
 	p.syntaxHighlighter = NewSyntaxHighlighter()
+	p.reformattedMarkdown = true
 
 	return p
 }
@@ -202,7 +204,11 @@ func (p *PrettyPrinter) printHeader(line string) {
 // printHorizontalRule prints a horizontal rule
 func (p *PrettyPrinter) printHorizontalRule(line string) {
 	fmt.Print(MdHeaderColor)
-	fmt.Print(line)
+	if p.reformattedMarkdown {
+		fmt.Print(strings.Repeat("─", 20))
+	} else {
+		fmt.Print(line)
+	}
 	fmt.Print(ResetFormat)
 }
 
@@ -297,6 +303,7 @@ func (p *PrettyPrinter) printFormattedText(line string) {
 	}
 
 	for _, m := range allMatches {
+		matchText := line[m.index : m.index+m.length]
 		// Print text before the match
 		if m.index > lastIndex {
 			fmt.Print(MdNormalTextColor)
@@ -306,15 +313,33 @@ func (p *PrettyPrinter) printFormattedText(line string) {
 		// Print the match with appropriate formatting
 		if m.typ == "code" {
 			fmt.Print(MdInlineCodeColor)
-			fmt.Print(line[m.index : m.index+m.length])
+			if p.reformattedMarkdown {
+				// Skip the first and last backtick characters
+				if len(matchText) >= 2 {
+					matchText = matchText[1 : len(matchText)-1]
+				}
+			}
+			fmt.Print(matchText)
 		} else if m.typ == "emphasis" {
 			fmt.Print(MdEmphasisColor)
+			numberOfAsterisks := strings.Count(matchText, "*")
+			isItalic := numberOfAsterisks != 4
+			isBold := numberOfAsterisks > 2
+			if p.reformattedMarkdown {
+				// remove asterisks from the match text
+				matchText = strings.ReplaceAll(matchText, "*", "")
+			}
 			if p.isBoldSupported {
-				fmt.Print(BoldFormat)
-				fmt.Print(line[m.index : m.index+m.length])
+				if isBold {
+					fmt.Print(BoldFormat)
+				}
+				if isItalic {
+					fmt.Print(ItalicFormat)
+				}
+				fmt.Print(matchText)
 				fmt.Print(ResetFormat + MdNormalTextColor) // Reset bold but keep color
 			} else {
-				fmt.Print(line[m.index : m.index+m.length])
+				fmt.Print(matchText)
 			}
 		}
 
