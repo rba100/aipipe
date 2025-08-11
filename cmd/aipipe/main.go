@@ -19,6 +19,7 @@ func main() {
 	prettyFlag := pflag.BoolP("pretty", "p", false, "Enable pretty printing with colors and formatting")
 	reasoningFlag := pflag.BoolP("reasoning", "r", false, "Use reasoning model")
 	fastFlag := pflag.BoolP("fast", "f", false, "Use fast model")
+	localFlag := pflag.BoolP("local", "l", false, "Use local model")
 	thinkingFlag := pflag.BoolP("thinking", "t", false, "Show thinking process")
 
 	// Parse command line flags - pflag allows flags to be placed anywhere
@@ -30,6 +31,7 @@ func main() {
 	isPretty := *prettyFlag
 	isReasoning := *reasoningFlag
 	isFast := *fastFlag
+	isLocal := *localFlag
 	showThinking := *thinkingFlag
 	// Get prompt from command line arguments
 	var argPrompt string
@@ -38,22 +40,21 @@ func main() {
 	}
 
 	// Run the AI query
-	err := runAIQuery(isCodeBlock, isStream, isPretty, isReasoning, isFast, showThinking, argPrompt)
+	err := runAIQuery(isCodeBlock, isStream, isPretty, isReasoning, isFast, isLocal, showThinking, argPrompt)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 		os.Exit(1)
 	}
 }
 
-func runAIQuery(isCodeBlock, isStream, isPretty, isReasoning, isFast, showThinking bool, argPrompt string) error {
+func runAIQuery(isCodeBlock, isStream, isPretty, isReasoning, isFast, isLocal, showThinking bool, argPrompt string) error {
 	// Check for mutually exclusive options
-
-	if isReasoning && isFast {
-		return fmt.Errorf("the --reasoning and --fast options cannot be used together")
+	if (isReasoning && isFast) || (isReasoning && isLocal) || (isFast && isLocal) {
+		return fmt.Errorf("the --reasoning, --fast and --local options cannot be used together")
 	}
 
 	// Get API configuration from environment variables
-	apiConfig, err := util.GetAPIConfig()
+	apiConfig, err := util.GetAPIConfig(isLocal)
 	if err != nil {
 		return err
 	}
@@ -64,6 +65,9 @@ func runAIQuery(isCodeBlock, isStream, isPretty, isReasoning, isFast, showThinki
 	}
 	if isFast {
 		model = llm.ModelTypeFast
+	}
+	if isLocal {
+		model = llm.ModelTypeLocal
 	}
 
 	// Create LLM client

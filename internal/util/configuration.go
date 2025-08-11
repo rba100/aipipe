@@ -16,6 +16,8 @@ type APIConfig struct {
 	DefaultModel   string
 	FastModel      string
 	ReasoningModel string
+	LocalModel     string
+	LocalBaseUrl   string
 }
 
 // UserConfig holds the user's configuration from YAML file
@@ -25,6 +27,8 @@ type UserConfig struct {
 	DefaultModel   string `yaml:"defaultModel"`
 	FastModel      string `yaml:"fastModel"`
 	ReasoningModel string `yaml:"reasoningModel"`
+	LocalModel     string `yaml:"localModel"`
+	LocalBaseUrl   string `yaml:"localBaseUrl"`
 }
 
 // LoadUserConfig loads configuration from ~/.aipipe/config.yaml if it exists
@@ -89,12 +93,42 @@ func LoadUserConfig(config *APIConfig) error {
 		}
 	}
 
+	if localModel, ok := normalizedMap["localmodel"]; ok && localModel != "" {
+		if str, ok := localModel.(string); ok {
+			config.LocalModel = str
+		}
+	}
+
+	if localBaseUrl, ok := normalizedMap["localbaseurl"]; ok && localBaseUrl != "" {
+		if str, ok := localBaseUrl.(string); ok {
+			config.LocalBaseUrl = str
+		}
+	}
+
 	return nil
 }
 
 // GetAPIConfig retrieves API configuration from environment variables and config file
-func GetAPIConfig() (*APIConfig, error) {
+func GetAPIConfig(isLocal bool) (*APIConfig, error) {
 	config := &APIConfig{}
+
+	// Try to load configuration from YAML file
+	// This will override environment variables if values are present in the file
+	if err := LoadUserConfig(config); err != nil {
+		// Just log the error but continue with env vars
+		fmt.Fprintf(os.Stderr, "Warning: Failed to load user config: %v\n", err)
+	}
+
+	if isLocal {
+		config.APIToken = "n/a"
+		if config.LocalBaseUrl == "" {
+			config.APIEndpoint = "http://localhost:1234/v1/"
+		} else {
+			config.APIEndpoint = config.LocalBaseUrl
+		}
+		// local model can be blank
+		return config, nil
+	}
 
 	isAipipe := false
 	isGroq := false
@@ -128,13 +162,6 @@ func GetAPIConfig() (*APIConfig, error) {
 		config.DefaultModel = "gpt-4o"
 		config.FastModel = "gpt-4o-mini"
 		config.ReasoningModel = "o3-mini"
-	}
-
-	// Try to load configuration from YAML file
-	// This will override environment variables if values are present in the file
-	if err := LoadUserConfig(config); err != nil {
-		// Just log the error but continue with env vars
-		fmt.Fprintf(os.Stderr, "Warning: Failed to load user config: %v\n", err)
 	}
 
 	// Final check if we have an API token

@@ -19,6 +19,7 @@ const (
 	ModelTypeFast ModelType = iota
 	ModelTypeDefault
 	ModelTypeReasoning
+	ModelTypeLocal
 )
 
 // Config holds the configuration for the LLM client
@@ -31,6 +32,8 @@ type Config struct {
 	DefaultModel   string
 	FastModel      string
 	ReasoningModel string
+	LocalModel     string
+	LocalBaseUrl   string
 
 	// Common configuration
 	IsCodeBlock bool
@@ -87,6 +90,8 @@ func (c *OpenAIClient) GetModel() string {
 		return c.config.FastModel
 	case ModelTypeReasoning:
 		return c.config.ReasoningModel
+	case ModelTypeLocal:
+		return c.config.LocalModel
 	default:
 		return c.config.DefaultModel
 	}
@@ -135,7 +140,9 @@ func (c *OpenAIClient) CreateCompletion(prompt string) (string, error) {
 	}
 
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Authorization", "Bearer "+c.apiKey)
+	if c.apiKey != "n/a" {
+		req.Header.Set("Authorization", "Bearer "+c.apiKey)
+	}
 
 	// Send the request
 	resp, err := c.httpClient.Do(req)
@@ -225,7 +232,9 @@ func (c *OpenAIClient) CreateCompletionStream(prompt string) <-chan string {
 		}
 
 		req.Header.Set("Content-Type", "application/json")
-		req.Header.Set("Authorization", "Bearer "+c.apiKey)
+		if c.apiKey != "n/a" {
+			req.Header.Set("Authorization", "Bearer "+c.apiKey)
+		}
 
 		// Send the request
 		resp, err := c.httpClient.Do(req)

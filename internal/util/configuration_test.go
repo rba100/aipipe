@@ -109,7 +109,7 @@ func TestGetAPIConfig(t *testing.T) {
 			}
 
 			// Call GetAPIConfig
-			config, err := GetAPIConfig()
+			config, err := GetAPIConfig(false)
 
 			// Check error
 			if tt.expectError {
