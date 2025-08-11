@@ -45,3 +45,4 @@ config.local.json
 # exes
 *.exe
 aipipe-linux-arm64
+build/
