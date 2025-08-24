@@ -20,18 +20,24 @@ func main() {
 			testCsharpHighlighting()
 			return
 		}
+		if testType == "powershell" || testType == "ps1" || testType == "ps" {
+			testPowerShellHighlighting()
+			return
+		}
 		// Default to Python test
 	}
 
 	// Run Python test by default
 	testPythonHighlighting()
 
-	// Run TypeScript test if no specific test was requested
+	// Run other tests if no specific test was requested
 	if len(os.Args) <= 1 {
 		fmt.Println("\nRunning TypeScript test...")
 		testTypeScriptHighlighting()
 		fmt.Println("\nRunning C# test...")
 		testCsharpHighlighting()
+		fmt.Println("\nRunning PowerShell test...")
+		testPowerShellHighlighting()
 	}
 }
 
@@ -350,4 +356,160 @@ And here's some text after the code block.
 	printer.Flush()
 
 	fmt.Println("\nC# syntax highlighting test complete!")
+}
+
+func testPowerShellHighlighting() {
+	// Create a sample markdown text with PowerShell code
+	markdownText := `# PowerShell Syntax Highlighting Test
+
+This is a test of syntax highlighting for PowerShell code:
+
+` + "```powershell" + `
+# This is a PowerShell comment
+<# This is a multi-line
+   PowerShell comment #>
+
+# Variables and assignments
+$name = "John Doe"
+$age = 30
+$isActive = $true
+$null_value = $null
+
+# Environment variables
+$user = $env:USERNAME
+$path = $env:PATH
+
+# Arrays and hashtables
+$numbers = @(1, 2, 3, 4, 5)
+$hash = @{
+    Name = "PowerShell"
+    Version = "7.0"
+    Author = "Microsoft"
+}
+
+# Function definition
+function Get-UserInfo {
+    param(
+        [string]$Username,
+        [int]$Age = 0
+    )
+    
+    Write-Host "User: $Username, Age: $Age"
+    return @{
+        Name = $Username
+        Age = $Age
+        Created = Get-Date
+    }
+}
+
+# Control flow
+if ($age -gt 18) {
+    Write-Host "User is an adult"
+} elseif ($age -eq 18) {
+    Write-Host "User just became an adult"
+} else {
+    Write-Host "User is a minor"
+}
+
+# Loops
+foreach ($number in $numbers) {
+    Write-Output "Number: $number"
+}
+
+for ($i = 0; $i -lt 10; $i++) {
+    Write-Host "Iteration: $i"
+}
+
+while ($counter -lt 5) {
+    Write-Host "Counter: $counter"
+    $counter++
+}
+
+# PowerShell cmdlets
+Get-Process | Where-Object { $_.Name -like "*powershell*" } | Select-Object Name, Id, CPU
+
+# Error handling
+try {
+    $result = Get-Content -Path "nonexistent.txt" -ErrorAction Stop
+    Write-Host "File content: $result"
+} catch {
+    Write-Error "An error occurred: $($_.Exception.Message)"
+} finally {
+    Write-Host "Cleanup completed"
+}
+
+# Here-strings
+$multiLineString = @"
+This is a here-string
+that spans multiple lines
+and preserves formatting
+"@
+
+# Pipeline operations
+Get-ChildItem -Path "C:\Windows" | 
+    Where-Object { $_.Extension -eq ".exe" } |
+    Sort-Object LastWriteTime -Descending |
+    Select-Object -First 10 |
+    Format-Table Name, LastWriteTime, Length
+
+# Advanced functions
+function Invoke-CustomCommand {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$ComputerName,
+        
+        [Parameter(ValueFromPipeline = $true)]
+        [string[]]$Commands
+    )
+    
+    begin {
+        Write-Verbose "Starting remote execution on $ComputerName"
+    }
+    
+    process {
+        foreach ($command in $Commands) {
+            try {
+                Invoke-Command -ComputerName $ComputerName -ScriptBlock {
+                    param($cmd)
+                    Invoke-Expression $cmd
+                } -ArgumentList $command
+            } catch {
+                Write-Warning "Failed to execute: $command"
+            }
+        }
+    }
+    
+    end {
+        Write-Verbose "Remote execution completed"
+    }
+}
+
+# PowerShell operators
+$result = ($a -eq $b) -and ($c -ne $d)
+$pattern = $text -match "^\d{3}-\d{2}-\d{4}$"
+$contains = $array -contains "value"
+$joined = $items -join ", "
+$replaced = $string -replace "old", "new"
+
+# Numbers and literals
+$decimal = 42
+$float = 3.14159
+$hex = 0xFF
+$binary = 0b1010
+$scientific = 1.23e-4
+` + "```" + `
+
+And here's some text after the code block.
+`
+
+	// Create a pretty printer
+	printer := display.NewPrettyPrinter()
+	defer printer.Close()
+
+	// Print the markdown text with syntax highlighting
+	printer.Print(markdownText)
+	printer.Flush()
+
+	fmt.Println("\nPowerShell syntax highlighting test complete!")
 }
