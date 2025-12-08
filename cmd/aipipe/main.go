@@ -146,7 +146,7 @@ func runAIQuery(isCodeBlock, isStream, isPretty, isReasoning, isFast, showThinki
 					os.Stdout.WriteString(result.Text)
 				}
 				// Add a newline if the last part doesn't end with one
-				os.Stdout.WriteString("\n")
+				os.Stdout.WriteString(newline)
 			}
 		} else {
 			if isPretty {
@@ -164,7 +164,7 @@ func runAIQuery(isCodeBlock, isStream, isPretty, isReasoning, isFast, showThinki
 					os.Stdout.WriteString(part)
 				}
 				// Add a newline if the last part doesn't end with one
-				os.Stdout.WriteString("\n")
+				os.Stdout.WriteString(newline)
 			}
 		}
 	} else {
@@ -193,7 +193,7 @@ func runAIQuery(isCodeBlock, isStream, isPretty, isReasoning, isFast, showThinki
 				printer.Flush()
 			} else {
 				os.Stdout.WriteString(result.Text)
-				os.Stdout.WriteString("\n")
+				os.Stdout.WriteString(newline)
 			}
 		} else {
 			if isPretty {
@@ -203,7 +203,7 @@ func runAIQuery(isCodeBlock, isStream, isPretty, isReasoning, isFast, showThinki
 				printer.Flush()
 			} else {
 				os.Stdout.WriteString(response)
-				os.Stdout.WriteString("\n")
+				os.Stdout.WriteString(newline)
 			}
 		}
 	}

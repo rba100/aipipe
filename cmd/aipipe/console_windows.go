@@ -15,8 +15,9 @@ var (
 
 const (
 	ENABLE_VIRTUAL_TERMINAL_PROCESSING = 0x0004
-	DISABLE_NEWLINE_AUTO_RETURN        = 0x0008
 )
+
+const newline = "\n"
 
 // initConsole sets up the Windows console for proper UTF-8 output
 func initConsole() {
@@ -26,9 +27,8 @@ func initConsole() {
 	var mode uint32
 	procGetConsoleMode.Call(uintptr(handle), uintptr(unsafe.Pointer(&mode)))
 	
-	// Enable virtual terminal processing for better compatibility
+	// Enable virtual terminal processing for ANSI escape sequences
 	mode |= ENABLE_VIRTUAL_TERMINAL_PROCESSING
-	mode |= DISABLE_NEWLINE_AUTO_RETURN
 	
 	procSetConsoleMode.Call(uintptr(handle), uintptr(mode))
 }
