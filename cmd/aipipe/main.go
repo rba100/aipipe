@@ -13,6 +13,9 @@ import (
 )
 
 func main() {
+	// Initialize console for proper UTF-8 output (Windows-specific)
+	initConsole()
+	
 	// Define command line flags
 	codeBlockFlag := pflag.BoolP("codeblock", "c", false, "Extract code block from response")
 	streamFlag := pflag.BoolP("stream", "s", false, "Stream completions from the AI model")
@@ -140,10 +143,10 @@ func runAIQuery(isCodeBlock, isStream, isPretty, isReasoning, isFast, showThinki
 				printer.Flush()
 			} else {
 				for result := range codeBlockStream {
-					fmt.Print(result.Text)
+					os.Stdout.WriteString(result.Text)
 				}
 				// Add a newline if the last part doesn't end with one
-				fmt.Println()
+				os.Stdout.WriteString("\n")
 			}
 		} else {
 			if isPretty {
@@ -158,10 +161,10 @@ func runAIQuery(isCodeBlock, isStream, isPretty, isReasoning, isFast, showThinki
 				printer.Flush()
 			} else {
 				for part := range stream {
-					fmt.Print(part)
+					os.Stdout.WriteString(part)
 				}
 				// Add a newline if the last part doesn't end with one
-				fmt.Println()
+				os.Stdout.WriteString("\n")
 			}
 		}
 	} else {
@@ -189,7 +192,8 @@ func runAIQuery(isCodeBlock, isStream, isPretty, isReasoning, isFast, showThinki
 				printer.Print(result.Text)
 				printer.Flush()
 			} else {
-				fmt.Println(result.Text)
+				os.Stdout.WriteString(result.Text)
+				os.Stdout.WriteString("\n")
 			}
 		} else {
 			if isPretty {
@@ -198,7 +202,8 @@ func runAIQuery(isCodeBlock, isStream, isPretty, isReasoning, isFast, showThinki
 				printer.Print(response)
 				printer.Flush()
 			} else {
-				fmt.Println(response)
+				os.Stdout.WriteString(response)
+				os.Stdout.WriteString("\n")
 			}
 		}
 	}
