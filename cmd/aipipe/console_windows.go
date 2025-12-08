@@ -17,9 +17,7 @@ const (
 	ENABLE_VIRTUAL_TERMINAL_PROCESSING = 0x0004
 )
 
-const newline = "\n"
-
-// initConsole sets up the Windows console for proper UTF-8 output
+// initConsole enables UTF-8 output and ANSI escape sequences on Windows console
 func initConsole() {
 	// Set stdout to UTF-8 mode
 	handle := syscall.Handle(syscall.Stdout)
