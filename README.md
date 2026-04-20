@@ -18,7 +18,7 @@ Simple reformatting
 
 Input:
 ```bash
-echo "Robin Anderson 1 High Street CB1 1AA" | aipipe "to JSON" --cb
+echo "Robin Anderson 1 High Street CB1 1AA" | aipipe "to JSON" -c
 ```
 
 Output:
@@ -32,7 +32,7 @@ Output:
 }
 ```
 
-The 'code block' flag `--cb` is best for when you want something specifically formatted, rather than just for you to read yourself. Without it the LLM might write "Sure, here's your thing..." which you might not want to pipe into another application.
+The 'code block' flag `-c` is best for when you want something specifically formatted, rather than just for you to read yourself. Without it the LLM might write "Sure, here's your thing..." which you might not want to pipe into another application.
 
 ### Options
 
@@ -71,7 +71,7 @@ as well as storing stuff in `~/.aipipe/config.yaml`
 ```yaml
 apiKey: xxx
 endpoint: https://openrouter.ai/api/v1
-defaultMode: gpt-5o
+defaultModel: gpt-5o
 reasoningModel: 6o-mini
 fastModel: llama-7.1-1b-nano
 ```
