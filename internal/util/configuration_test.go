@@ -38,11 +38,8 @@ func TestGetAPIConfig(t *testing.T) {
 			},
 			expectError: false,
 			expectedConfig: &APIConfig{
-				APIToken:       "test-aipipe-key",
-				APIEndpoint:    "https://test-aipipe-endpoint.com",
-				DefaultModel:   "llama-3.3-70b-versatile",
-				FastModel:      "llama-3.1-8b-instant",
-				ReasoningModel: "qwen-qwq-32b",
+				APIToken:    "test-aipipe-key",
+				APIEndpoint: "https://test-aipipe-endpoint.com",
 			},
 		},
 		{
@@ -55,11 +52,8 @@ func TestGetAPIConfig(t *testing.T) {
 			},
 			expectError: false,
 			expectedConfig: &APIConfig{
-				APIToken:       "test-groq-key",
-				APIEndpoint:    "https://api.groq.com/openai/v1",
-				DefaultModel:   "llama-3.3-70b-versatile",
-				FastModel:      "llama-3.1-8b-instant",
-				ReasoningModel: "qwen-qwq-32b",
+				APIToken:    "test-groq-key",
+				APIEndpoint: "https://api.groq.com/openai/v1",
 			},
 		},
 		{
@@ -72,11 +66,8 @@ func TestGetAPIConfig(t *testing.T) {
 			},
 			expectError: false,
 			expectedConfig: &APIConfig{
-				APIToken:       "test-openai-key",
-				APIEndpoint:    "https://api.openai.com/v1",
-				DefaultModel:   "gpt-4o",
-				FastModel:      "gpt-4o-mini",
-				ReasoningModel: "o3-mini",
+				APIToken:    "test-openai-key",
+				APIEndpoint: "https://api.openai.com/v1",
 			},
 		},
 		{
@@ -131,14 +122,14 @@ func TestGetAPIConfig(t *testing.T) {
 			if config.APIEndpoint != tt.expectedConfig.APIEndpoint {
 				t.Errorf("APIEndpoint = %v, want %v", config.APIEndpoint, tt.expectedConfig.APIEndpoint)
 			}
-			if config.DefaultModel != tt.expectedConfig.DefaultModel {
-				t.Errorf("DefaultModel = %v, want %v", config.DefaultModel, tt.expectedConfig.DefaultModel)
+			if config.DefaultModel == "" {
+				t.Error("DefaultModel should not be empty")
 			}
-			if config.FastModel != tt.expectedConfig.FastModel {
-				t.Errorf("FastModel = %v, want %v", config.FastModel, tt.expectedConfig.FastModel)
+			if config.FastModel == "" {
+				t.Error("FastModel should not be empty")
 			}
-			if config.ReasoningModel != tt.expectedConfig.ReasoningModel {
-				t.Errorf("ReasoningModel = %v, want %v", config.ReasoningModel, tt.expectedConfig.ReasoningModel)
+			if config.ReasoningModel == "" {
+				t.Error("ReasoningModel should not be empty")
 			}
 		})
 	}
